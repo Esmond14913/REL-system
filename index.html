@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DI5Totype html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -28,12 +28,9 @@
 <body class="bg-slate-50 text-slate-900">
   <div id="root"></div>
 
-
-
-
   <!-- Main Application Script -->
   <script type="text/babel" data-type="module">
-    // --- 1. 從全域變數提取所需套件 ---
+    // --- 1. ÑÁº¾Ð¡¾Ôº¾®×¼Ö»¾Ó¾¾Ð«ºÔº¾­ ---
     const { useState, useEffect, useMemo, useRef } = React;
     const { 
       Table, PlusCircle, Trash2, Search, Lock,
@@ -41,35 +38,4 @@
       Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
       FolderSearch, AlertCircle, FolderLock, Package
     } = window.LucideReact;
-    // dayjs 與 XLSX 已存在於 window 中，可直接使用
-
-
-
-
-    // ==========================================
-    // IndexedDB Helper for Directory Handle
-    // ==========================================
-    const DB_NAME = 'HQA_LocalDB';
-    const STORE_NAME = 'handles';
-
-
-
-
-    const openDB = () => new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-
-
-
-
-    const saveHandleToDB = async (handle) => {
-      const db = await openDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put(handle, 'dir_handle');
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
+    // dayjs ¼Ôº½ XLSX ´º¾ »¾Ðº×Ô¼¾ÐººÓ¾¾Ð« !- p¾¾Ù: </script></body></html>
