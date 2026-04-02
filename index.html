@@ -4,42 +4,41 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HQA Portal (Local-first)</title>
-  
+
   <!-- Tailwind CSS (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <!-- React & ReactDOM (CDN) -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  
+
   <!-- Babel Standalone for inline JSX compilation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
+
   <!-- SheetJS (XLSX) -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-  
+
   <!-- Day.js -->
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  
+
   <!-- Lucide React Icons (Requires window.react alias) -->
   <script>window.react = window.React;</script>
   <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
-  
 </head>
 <body class="bg-slate-50 text-slate-900">
   <div id="root"></div>
 
   <!-- Main Application Script -->
   <script type="text/babel" data-type="module">
-    // --- 1. 敺???豢????憟辣 ---
     const { useState, useEffect, useMemo, useRef } = React;
     const { 
       Table, PlusCircle, Trash2, Search, Lock,
       X, Pencil, ChevronLeft, ChevronRight, Box, ClipboardList, 
       Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
-      FolderSearch, AlertCircle, FolderLock, Package
+      FolderSearch, AlertCircle, FolderLock, Package,
+      CheckCircle, FileText
     } = window.LucideReact;
-    // dayjs ??XLSX 撌脣??冽 window 銝哨??舐?乩蝙??
+
     // ==========================================
     // IndexedDB Helper for Directory Handle
     // ==========================================
@@ -83,52 +82,18 @@
 
     const generateId = () => Math.random().toString(36).substr(2, 9);
 
-    // --- ?典?撣賊? ---
     const STAGE_SUGGESTIONS = ['All', 'P2', 'EVT', 'DVT', 'PVT', 'MP'];
-    const RESULTS = ['On-going', 'Pass', 'Fail', 'On-hold', 'N/A', 'Not Start'];
-    const READINESS_STATUSES = ['Not start', 'Purchasing', 'Arrived'];
+    const RESULTS = ['On-going', 'Pass', 'Fail', 'On-hold', 'Block', 'N/A', 'Not Start'];
 
-    // --- 撌亙??摨撘?---
-    const getStageRank = (stage) => {
-      const s = String(stage || '').toUpperCase();
-      const ranks = { 'ALL': 0, 'P2': 1, 'EVT': 2, 'DVT': 3, 'PVT': 4, 'MP': 5 };
-      return ranks[s] !== undefined ? ranks[s] : 99;
-    };
-
-    const universalSorter = (a, b, isDoc = false) => {
-      const projA = String(a.project || '').toLowerCase();
-      const projB = String(b.project || '').toLowerCase();
-      if (projA !== projB) return projA.localeCompare(projB, undefined, { numeric: true });
-      const rankA = getStageRank(a.stage);
-      const rankB = getStageRank(b.stage);
-      if (rankA !== rankB) return rankA - rankB;
-      if (isDoc) return 0;
-      const buildA = String(a.build || '').toLowerCase();
-      const buildB = String(b.build || '').toLowerCase();
-      if (buildA !== buildB) return buildA.localeCompare(buildB, undefined, { numeric: true });
-      const configA = String(a.config || '').toLowerCase();
-      const configB = String(b.config || '').toLowerCase();
-      return configA.localeCompare(configB, undefined, { numeric: true });
-    };
-
-    // --- 璅???賢? ---
     const getStageStyle = (s) => {
       const m = { P2: 'bg-slate-200 text-slate-700 border-slate-300', EVT: 'bg-orange-100 text-orange-600 border-orange-200', DVT: 'bg-indigo-100 text-indigo-600 border-indigo-200', PVT: 'bg-purple-100 text-purple-600 border-purple-200', MP: 'bg-green-100 text-green-600 border-green-200', ALL: 'bg-blue-100 text-blue-600 border-blue-200' };
       return m[String(s).toUpperCase()] || 'bg-slate-100 border-slate-200';
     };
 
     const getResultStyle = (r) => {
-      const m = { Pass: 'bg-emerald-500 text-white shadow-sm', Fail: 'bg-rose-500 text-white shadow-sm', 'On-going': 'bg-yellow-400 text-black shadow-sm', 'On-hold': 'bg-white text-slate-700 border-slate-200 shadow-sm', 'N/A': 'bg-black text-white shadow-sm', 'Not Start': 'bg-slate-100 text-slate-400 border-slate-200 shadow-sm' };
+      const m = { Pass: 'bg-emerald-500 text-white shadow-sm', Fail: 'bg-rose-500 text-white shadow-sm', 'Block': 'bg-rose-700 text-white shadow-sm', 'On-going': 'bg-yellow-400 text-black shadow-sm', 'On-hold': 'bg-white text-slate-700 border-slate-200 shadow-sm', 'N/A': 'bg-black text-white shadow-sm', 'Not Start': 'bg-slate-100 text-slate-400 border-slate-200 shadow-sm' };
       return m[String(r)] || 'bg-slate-100 text-slate-400';
     };
-
-    // --- ??璅惜蝯辣 ---
-    const BilingualLabel = ({ en, zh, dark = false }) => (
-      <span className={`flex flex-col text-left ${dark ? 'text-slate-400' : 'text-slate-500'} pointer-events-none`}>
-        <span className="text-[10px] font-black uppercase tracking-wider leading-tight block">{String(en)}</span>
-        <span className="text-[13px] font-bold leading-tight block">{String(zh)}</span>
-      </span>
-    );
 
     const SidebarLabel = ({ en, zh }) => (
       <span className="flex flex-col items-start justify-center leading-none text-left pointer-events-none">
@@ -137,75 +102,63 @@
       </span>
     );
 
-    // ==========================================
-    // 銝餉??蝔??辣
-    // ==========================================
+    // Dynamic Options Extractor
+    const getDynamicOptions = (arr) => {
+        return {
+            projects: [...new Set(arr.map(a=>a.Project).filter(Boolean))],
+            stages: [...new Set(arr.map(a=>a.Stage).filter(Boolean))],
+            builds: [...new Set(arr.map(a=>a.Build).filter(Boolean))],
+            configs: [...new Set(arr.map(a=>a.Config).filter(Boolean))]
+        };
+    };
+
     function App() {
-      // --- 蝟餌絞???---
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
       const [message, setMessage] = useState('');
 
-      // --- ?豢????---
       const [records, setRecords] = useState([]);
       const [samples, setSamples] = useState([]);
       const [configsList, setConfigsList] = useState([]); 
       const [readinessItems, setReadinessItems] = useState([]);
       const [documents, setDocuments] = useState([]);
-      
+
       const [searchTerm, setSearchTerm] = useState('');
       const [isAdmin, setIsAdmin] = useState(false);
       const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-      
-      // --- ??蝭拚 ---
-      const [recFilter, setRecFilter] = useState({ project: '', stage: '', build: '', config: '', result: '' });
-      const [trackFilter, setTrackFilter] = useState({ project: '', stage: '', build: '', keeper: '' });
-      const [cfgFilter, setCfgFilter] = useState({ project: '', stage: '', build: '' });
-      const [readFilter, setReadFilter] = useState({ project: '', stage: '', status: '' });
-      const [docFilter, setDocFilter] = useState({ project: '', stage: '' });
 
-      // --- 蝺刻摩???---
+      const [filterProject, setFilterProject] = useState('All');
+      const [filterStage, setFilterStage] = useState('All');
+      const [filterBuild, setFilterBuild] = useState('All');
+      const [filterConfig, setFilterConfig] = useState('All');
+      const [filterResult, setFilterResult] = useState('All');
+      const [filterKeeper, setFilterKeeper] = useState('All');
+      const [filterStatus, setFilterStatus] = useState('All');
+
       const [editingRecord, setEditingRecord] = useState(null);
       const [editingSample, setEditingSample] = useState(null);
       const [editingConfig, setEditingConfig] = useState(null);
       const [editingReadiness, setEditingReadiness] = useState(null);
       const [editingDocument, setEditingDocument] = useState(null);
 
-      // --- 銵典????---
-      const [newRecord, setNewRecord] = useState({ project: '', stage: 'P2', build: '', config: '', category: '', item: '', qty: '', start: '', end: '', result: 'Not Start', report: '', remark: '' });
-      const [newSample, setNewSample] = useState({ project: '', stage: 'P2', build: '', config: '', dutId: '', sn: '', keeper: '', item1: '', item2: '', failure: '', faReport: '', remark: '' });
-      const [newConfigEntry, setNewConfigEntry] = useState({ project: '', stage: 'P2', build: '', config: '', size: '', description: '', remark: '' });
-      const [newReadiness, setNewReadiness] = useState({ project: '', stage: 'P2', category: '', item: '', numbers: '', eta: '', status: 'Not start', po: '', remark: '' });
-      const [newDocument, setNewDocument] = useState({ project: '', stage: 'P2', name: '', link: '', remark: '' });
-
-      // 1. ???????Handle
       useEffect(() => {
         const initLocalFS = async () => {
           try {
             const storedHandle = await getHandleFromDB();
-            if (storedHandle) {
-              const hasPerm = await verifyPermission(storedHandle, true);
-              if (hasPerm) {
-                setDirHandle(storedHandle);
-                await loadAndCleanupExcelData(storedHandle, retentionDays);
-                setActiveTab('records'); // ??霈??頝唾?
-              }
+            if (storedHandle && await verifyPermission(storedHandle, true)) {
+              setDirHandle(storedHandle);
+              await loadAndCleanupExcelData(storedHandle, retentionDays);
+              setActiveTab('records');
             }
-          } catch (err) {
-            console.warn('Silent local handle restore failed:', err);
-          }
+          } catch (err) { console.warn('Silent local handle restore failed:', err); }
         };
         initLocalFS();
       }, []);
 
-      // 霈 Retention Days
-      useEffect(() => {
-        localStorage.setItem('retention_days', retentionDays.toString());
-      }, [retentionDays]);
+      useEffect(() => { localStorage.setItem('retention_days', retentionDays.toString()); }, [retentionDays]);
 
-
-      // 2. ?砍 Excel 霈撖急敹?頛?      const autoCleanup = async (handle, rDays) => {
+      const autoCleanup = async (handle, rDays) => {
         if (!handle) return;
         try {
           const thresholdDate = dayjs().subtract(rDays, 'day');
@@ -221,92 +174,66 @@
                }
             }
           }
-        } catch(err) {
-          console.error('Cleanup failed:', err);
-        }
+        } catch(err) { console.error('Cleanup failed:', err); }
       };
 
       const loadAndCleanupExcelData = async (handle, rDays) => {
         try {
           if (!handle) return;
           setMessage('Scanning folder...');
-          
           let latestFileHandle = null;
           let latestDateStr = '';
-          
           for await (const entry of handle.values()) {
              if (entry.kind === 'file' && entry.name.startsWith('HQA_Master_') && entry.name.endsWith('.xlsx')) {
                 const dateStr = entry.name.replace('HQA_Master_', '').replace('.xlsx', '');
-                if (dateStr > latestDateStr) {
-                   latestDateStr = dateStr;
-                   latestFileHandle = entry;
-                }
+                if (dateStr > latestDateStr) { latestDateStr = dateStr; latestFileHandle = entry; }
              }
           }
-          
           if (!latestFileHandle) {
              setMessage('No existing Excel found. A new one will be created upon first save.');
              setRecords([]); setSamples([]); setConfigsList([]); setReadinessItems([]); setDocuments([]);
              return;
           }
-          
           setMessage(`Loading ${latestFileHandle.name}...`);
           const file = await latestFileHandle.getFile();
           const buffer = await file.arrayBuffer();
           const wb = XLSX.read(buffer, { type: 'array' });
-          
           const getSheetData = (name) => {
              const sheet = wb.Sheets[name];
              if (!sheet) return [];
              return XLSX.utils.sheet_to_json(sheet).map(row => ({ id: generateId(), ...row }));
           };
-          
           setRecords(getSheetData('Records'));
           setSamples(getSheetData('Tracking'));
           setConfigsList(getSheetData('Config'));
           setReadinessItems(getSheetData('Readiness'));
           setDocuments(getSheetData('Documents'));
-          
           setMessage('Ready.');
-          
-          // ??甇亙銵???          autoCleanup(handle, rDays);
-
-        } catch(err) {
-          console.error('Load Excel failed:', err);
-          setMessage('Error loading Excel. Check console.');
-        }
+          autoCleanup(handle, rDays);
+        } catch(err) { console.error('Load Excel failed:', err); setMessage('Error loading Excel.'); }
       };
 
-      // 蝯曹?摮?暺?撣嗅甈脣摮??啁????async stale state
       const saveToExcel = async (payload) => {
         if (!dirHandle) return;
         setMessage('Saving...');
         try {
           const today = dayjs().format('YYYYMMDD');
           const fileName = `HQA_Master_${today}.xlsx`;
-          
           const prepare = (arr) => arr.map(r => { const {id, ...rest} = r; return rest; });
           const wb = XLSX.utils.book_new();
-          
           XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.records || records)), 'Records');
           XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.samples || samples)), 'Tracking');
           XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.configsList || configsList)), 'Config');
           XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.readinessItems || readinessItems)), 'Readiness');
           XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.documents || documents)), 'Documents');
-
           const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-          
           const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
           const writable = await fileHandle.createWritable();
           await writable.write(wbout);
           await writable.close();
-          
           setMessage(`Saved to ${fileName}`);
           setTimeout(()=>setMessage('Ready.'), 3000);
-        } catch(err) {
-          console.error('Save failed:', err);
-          setMessage('Failed to save file. Ensure it is not locked.');
-        }
+        } catch(err) { console.error('Save failed:', err); setMessage('Failed to save file.'); }
       };
 
       const connectDirectory = async () => {
@@ -316,12 +243,9 @@
           setDirHandle(handle);
           await loadAndCleanupExcelData(handle, retentionDays);
           setActiveTab('records');
-        } catch (err) {
-          console.warn('Directory selection cancelled:', err);
-        }
+        } catch (err) { console.warn('Directory selection cancelled'); }
       };
-
-      // 3. ?蕪??摨?蝞?            const filteredRecords = records.filter(r => {
+      const filteredRecords = records.filter(r => {
          if (filterProject !== 'All' && r.Project !== filterProject) return false;
          if (filterStage !== 'All' && r.Stage !== filterStage) return false;
          if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
@@ -354,7 +278,6 @@
          return true;
       });
 
-      // 4. CRUD ??
       const handleUpdate = async (type, item) => {
         let payload = {};
         if (type === 'record') { const n = records.map(x => x.id === item.id ? item : x); setRecords(n); payload.records = n; }
@@ -362,21 +285,8 @@
         else if (type === 'config') { const n = configsList.map(x => x.id === item.id ? item : x); setConfigsList(n); payload.configsList = n; }
         else if (type === 'readiness') { const n = readinessItems.map(x => x.id === item.id ? item : x); setReadinessItems(n); payload.readinessItems = n; }
         else if (type === 'document') { const n = documents.map(x => x.id === item.id ? item : x); setDocuments(n); payload.documents = n; }
-        
         await saveToExcel(payload);
         setEditingRecord(null); setEditingSample(null); setEditingConfig(null); setEditingReadiness(null); setEditingDocument(null);
-      };
-
-      const handleAdd = async (type, data) => {
-        const newItem = { id: generateId(), ...data };
-        let payload = {};
-        if (type === 'records') { const n = [...records, newItem]; setRecords(n); payload.records = n; }
-        else if (type === 'samples') { const n = [...samples, newItem]; setSamples(n); payload.samples = n; }
-        else if (type === 'configsList') { const n = [...configsList, newItem]; setConfigsList(n); payload.configsList = n; }
-        else if (type === 'readinessItems') { const n = [...readinessItems, newItem]; setReadinessItems(n); payload.readinessItems = n; }
-        else if (type === 'documents') { const n = [...documents, newItem]; setDocuments(n); payload.documents = n; }
-
-        await saveToExcel(payload);
       };
 
       const deleteItem = async (id, type) => {
@@ -387,16 +297,14 @@
         else if (type === 'configsList') { const n = configsList.filter(x => x.id !== id); setConfigsList(n); payload.configsList = n; }
         else if (type === 'readinessItems') { const n = readinessItems.filter(x => x.id !== id); setReadinessItems(n); payload.readinessItems = n; }
         else if (type === 'documents') { const n = documents.filter(x => x.id !== id); setDocuments(n); payload.documents = n; }
-
         await saveToExcel(payload);
       };
-
 
       return (
         <div className="min-h-screen bg-[#f1f5f9] flex flex-col md:flex-row font-sans text-slate-900 overflow-hidden">
           <datalist id="stage-options">{STAGE_SUGGESTIONS.map(o => <option key={o} value={o} />)}</datalist>
 
-          {/* ?湧?甈?*/}
+          {/* Sidebar */}
           <nav className={`h-screen bg-slate-900 text-white flex flex-col shadow-2xl transition-all ${isSidebarOpen ? 'w-72' : 'w-20'}`}>
             <div className="p-6 flex items-center justify-between border-b border-slate-800">
               {isSidebarOpen ? <div className="flex flex-col"><div className="flex items-center gap-3 text-indigo-500 font-black text-xl">HQA PORTAL</div><div className="text-xs text-slate-400 font-medium tracking-widest mt-1">BY ESMOND</div></div> : <Lock className="mx-auto text-indigo-500" />}
@@ -407,8 +315,8 @@
                 { id: 'records', icon: Table, zh: '撖阡?蝝?? },
                 { id: 'tracking', icon: Box, zh: '璅?餈質馱' },
                 { id: 'config_recipes', icon: ClipboardList, zh: '?蔭閬' },
-                { id: 'readiness', icon: Truck, zh: '?∟頃皞?' },
-                { id: 'documents', icon: FolderOpen, zh: '?辣?' },
+                { id: 'readiness', icon: CheckCircle, zh: '皞???? },
+                { id: 'documents', icon: FileText, zh: '?辣蝞∠?' },
                 { id: 'stats', icon: PieChart, zh: '蝬?蝯梯?' },
                 { id: 'inventory', icon: Package, zh: '璅?摨怠?' },
                 { id: 'settings', icon: Settings, zh: '蝟餌絞閮剖?' }
@@ -417,26 +325,21 @@
                 return (
                   <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${activeTab === tab.id ? 'bg-indigo-600 shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}>
                     <Icon size={20}/>
-                    {isSidebarOpen && <SidebarLabel en={tab.id.toUpperCase()} zh={tab.zh} />}
+                    {isSidebarOpen && <SidebarLabel en={tab.id.replace('_', ' ')} zh={tab.zh} />}
                   </button>
                 )
               })}
             </div>
             <div className="p-4 border-t border-slate-800 flex flex-col gap-2">
-               <div className={`text-xs ${dirHandle ? 'text-emerald-400' : 'text-rose-400'} flex items-center gap-2 truncate`}>
-                  <FolderSearch size={14} /> {dirHandle ? dirHandle.name : 'No Folder Connected'}
-               </div>
-               <button onClick={() => setIsAdmin(!isAdmin)} className="w-full py-3 rounded-xl bg-slate-700 hover:bg-indigo-500 transition-colors text-xs font-black uppercase shadow-lg">
-                 {isAdmin ? 'Readonly Mode' : 'Admin Mode'}
-               </button>
+               <div className={`text-xs ${dirHandle ? 'text-emerald-400' : 'text-rose-400'} flex items-center gap-2 truncate`}><FolderSearch size={14} /> {dirHandle ? dirHandle.name : 'No Folder Connected'}</div>
+               <button onClick={() => setIsAdmin(!isAdmin)} className="w-full py-3 rounded-xl bg-slate-700 hover:bg-indigo-500 transition-colors text-xs font-black uppercase shadow-lg">{isAdmin ? 'Readonly Mode' : 'Admin Mode'}</button>
             </div>
           </nav>
 
-          {/* 銝餃摰孵? */}
+          {/* Main Area */}
           <main className="flex-1 flex flex-col overflow-hidden bg-slate-50">
             <header className="px-8 py-6 bg-white border-b flex justify-between items-center">
-              <div><h2 className="text-2xl font-black uppercase">{activeTab.replace('_', ' ')}</h2>
-              <p className="text-xs text-indigo-600 font-bold tracking-widest">{message || 'LOCAL-FIRST ARCHITECTURE'}</p></div>
+              <div><h2 className="text-2xl font-black uppercase">{activeTab.replace('_', ' ')}</h2><p className="text-xs text-indigo-600 font-bold tracking-widest">{message || 'LOCAL-FIRST ARCHITECTURE'}</p></div>
               <div className="flex gap-3">
                  <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/><input onChange={e=>setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 bg-slate-100 rounded-xl outline-none w-64" placeholder="Quick search..."/></div>
                  {dirHandle && <button onClick={()=>loadAndCleanupExcelData(dirHandle, retentionDays)} className="p-2 border rounded-xl hover:bg-slate-50 relative group"><RefreshCw size={20}/></button>}
@@ -453,9 +356,7 @@
                 </div>
               ) : (
                 <>
-                {/* ========================================================
-                   SYSTEM SETTINGS TAB
-                ======================================================== */}
+                {/* SETTINGS TAB */}
                 {activeTab === 'settings' && (
                   <div className="max-w-2xl bg-white p-8 rounded-3xl shadow-sm border">
                      <h3 className="text-lg font-black uppercase border-b pb-4 mb-6"><Settings className="inline mr-2"/> Settings & Local Connection</h3>
@@ -463,105 +364,246 @@
                         <div>
                            <label className="block text-sm font-bold text-slate-500 mb-2">Local Master Folder</label>
                            <div className="flex items-center gap-4">
-                             <div className="flex-1 p-3 bg-slate-100 rounded-xl font-mono text-sm border flex items-center gap-2">
-                               {dirHandle ? <React.Fragment><FolderLock className="text-emerald-500"/> {dirHandle.name}</React.Fragment> : <React.Fragment><AlertCircle className="text-rose-500"/> Not Connected</React.Fragment>}
-                             </div>
-                             <button onClick={connectDirectory} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow border border-indigo-700">
-                               {dirHandle ? 'Change Folder' : 'Connect Folder'}
-                             </button>
+                             <div className="flex-1 p-3 bg-slate-100 rounded-xl font-mono text-sm border flex items-center gap-2">{dirHandle ? <React.Fragment><FolderLock className="text-emerald-500"/> {dirHandle.name}</React.Fragment> : <React.Fragment><AlertCircle className="text-rose-500"/> Not Connected</React.Fragment>}</div>
+                             <button onClick={connectDirectory} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl border border-indigo-700">{dirHandle ? 'Change Folder' : 'Connect Folder'}</button>
                            </div>
                         </div>
                         <div>
-                           <label className="block text-sm font-bold text-slate-500 mb-2">Excel Retention Days (Auto Backup Cleanup)</label>
+                           <label className="block text-sm font-bold text-slate-500 mb-2">Excel Retention Days</label>
                            <input type="number" min="1" max="365" value={retentionDays} onChange={e=>setRetentionDays(parseInt(e.target.value,10))} className="w-full p-3 border rounded-xl bg-slate-50"/>
-                           <p className="text-xs text-slate-400 mt-2">Old HQA_Master_[DATE].xlsx copies exceeding this age will be automatically purged on startup.</p>
                         </div>
                      </div>
                   </div>
                 )}
-
-                {/* ========================================================
-                   RECORDS TAB
-                ======================================================== */}
+                {/* RECORDS TAB */}
                 {activeTab === 'records' && (
-                  <div className="space-y-6 animate-in fade-in font-bold">
-                     {/* ?函?蝭拚??*/}
-                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4 text-xs">
-                        <Filter size={16} className="text-indigo-500"/>
-                        <select value={recFilter.project} onChange={e=>setRecFilter({...recFilter, project:e.target.value})} className="bg-slate-50 rounded p-1">
-                          <option value="">All Projects</option>{getDynamicOptions(records, 'Project', 'Stage', 'Build', 'Config').projects.map(p=><option key={p} value={p}>{p}</option>)}
-                        </select>
-                        <select value={recFilter.stage} onChange={e=>setRecFilter({...recFilter, stage:e.target.value})} className="bg-slate-50 rounded p-1">
-                          <option value="">All Stages</option>{getDynamicOptions(records, 'Project', 'Stage', 'Build', 'Config').stages.map(s=><option key={s} value={s}>{s}</option>)}
-                        </select>
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4">
+                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(records).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(records).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(records).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(records).configs.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterResult} onChange={e=>setFilterResult(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Results</option>{[...new Set(records.map(r=>r.Result).filter(Boolean))].map(p=><option key={p} value={p}>{p}</option>)}</select>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingRecord({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Record</button>}
                      </div>
-
-                     {/* ?啣?銵典 */}
-                     {isAdmin && (
-                       <div className="bg-white p-6 rounded-3xl border shadow-sm grid grid-cols-6 gap-3">
-                          <div className="col-span-1"><BilingualLabel en="PROJECT" zh="撠?"/><input className="w-full p-2 border rounded mt-1" value={newRecord.project} onChange={e=>setNewRecord({...newRecord, project:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="STAGE" zh="?挾"/><input list="stage-options" className="w-full p-2 border rounded mt-1" value={newRecord.stage} onChange={e=>setNewRecord({...newRecord, stage:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="BUILD" zh="?"/><input className="w-full p-2 border rounded mt-1" value={newRecord.build} onChange={e=>setNewRecord({...newRecord, build:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="CONFIG" zh="?蔭"/><input className="w-full p-2 border rounded mt-1" value={newRecord.config} onChange={e=>setNewRecord({...newRecord, config:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="CATEGORY" zh="憭折?"/><input className="w-full p-2 border rounded mt-1" value={newRecord.category} onChange={e=>setNewRecord({...newRecord, category:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="TEST ITEM" zh="皜祈岫?"/><input className="w-full p-2 border rounded mt-1" value={newRecord.item} onChange={e=>setNewRecord({...newRecord, item:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="Q'TY" zh="?賊?"/><input type="number" className="w-full p-2 border rounded mt-1" value={newRecord.qty} onChange={e=>setNewRecord({...newRecord, qty:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="RESULT" zh="蝯?"/><select className="w-full p-2 border rounded mt-1" value={newRecord.result} onChange={e=>setNewRecord({...newRecord, result:e.target.value})}>{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
-                          <div className="col-span-3"><BilingualLabel en="REMARK" zh="?酉"/><input className="w-full p-2 border rounded mt-1" value={newRecord.remark} onChange={e=>setNewRecord({...newRecord, remark:e.target.value})}/></div>
-                          
-                          <button onClick={()=>handleAdd('records', { 
-                            Project: newRecord.project, Stage: newRecord.stage, Build: newRecord.build, Config: newRecord.config, 
-                            Category: newRecord.category, "Test item": newRecord.item, "Q'ty": newRecord.qty, 
-                            Start: newRecord.start, End: newRecord.end, Result: newRecord.result, Report: newRecord.report, Remark: newRecord.remark
-                          })} className="bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-slate-800 transition-colors"><PlusCircle/></button>
-                       </div>
-                     )}
-
-                     {/* ?豢??” */}
-                     <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                        <table className="w-full text-left border-collapse">
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-x-auto">
+                        <table className="w-full text-left border-collapse whitespace-nowrap">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-xs uppercase text-slate-400">
-                               <th className="p-4"><BilingualLabel en="PROJECT" zh="撠?"/></th>
-                               <th className="p-4"><BilingualLabel en="STAGE" zh="?挾"/></th>
-                               <th className="p-4"><BilingualLabel en="BUILD" zh="?"/></th>
-                               <th className="p-4"><BilingualLabel en="CONFIG" zh="?蔭"/></th>
-                               <th className="p-4"><BilingualLabel en="CATEGORY" zh="憭折?"/></th>
-                               <th className="p-4"><BilingualLabel en="TEST ITEM" zh="皜祈岫?"/></th>
-                               <th className="p-4"><BilingualLabel en="Q'TY" zh="?賊?"/></th>
-                               <th className="p-4"><BilingualLabel en="RESULT" zh="蝯?"/></th>
-                               {isAdmin && <th className="p-4 text-center">ACTION</th>}
+                               <th className="p-4">Project / 撠?</th><th className="p-4">Stage / ?挾</th><th className="p-4">Build / ?</th><th className="p-4">Config / ?蔭</th>
+                               <th className="p-4">Category / 憿</th><th className="p-4">Test item / 皜祈岫?</th><th className="p-4">Q'ty / ?賊?</th>
+                               <th className="p-4">Start / ??</th><th className="p-4">End / 蝯?</th><th className="p-4 text-center">Result / 蝯?</th><th className="p-4 flex justify-center text-center">Report / ?勗?</th><th className="p-4">Remark / ?酉</th>
+                               {isAdmin && <th className="p-4 text-center">Action</th>}
                              </tr>
                           </thead>
-                          <tbody className="divide-y">
+                          <tbody className="divide-y text-sm">
                              {filteredRecords.map(r => (
-                               <tr key={r.id} className="hover:bg-slate-50 font-bold transition-colors">
-                                 <td className="p-4">{String(r.Project||'')}</td>
-                                 <td className="p-4"><span className={`px-2 py-1 rounded-lg border text-[18px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
-                                 <td className="p-4">{String(r.Build||'')}</td>
-                                 <td className="p-4 font-mono text-[18px] text-slate-400">{String(r.Config||'')}</td>
-                                 <td className="p-4 text-indigo-600">{String(r.Category||'')}</td>
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-4 font-bold">{String(r.Project||'')}</td>
+                                 <td className="p-4"><span className={`px-2 py-1 rounded-lg border text-xs ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-4 font-bold">{String(r.Build||'')}</td>
+                                 <td className="p-4 font-mono text-slate-500">{String(r.Config||'')}</td>
+                                 <td className="p-4 text-indigo-600 font-bold">{String(r.Category||'')}</td>
                                  <td className="p-4">{String(r['Test item']||'')}</td>
                                  <td className="p-4">{String(r["Q'ty"]||'')}</td>
-                                 <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-xs ${getResultStyle(r.Result)}`}>{String(r.Result||'')}</span></td>
+                                 <td className="p-4 text-slate-500">{String(r.Start||'')}</td>
+                                 <td className="p-4 text-slate-500">{String(r.End||'')}</td>
+                                 <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full border text-[11px] font-bold tracking-widest uppercase ${getResultStyle(r.Result)}`}>{String(r.Result||'')}</span></td>
+                                 <td className="p-4 justify-center flex">{r.Report ? <a href={r.Report} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Link</a> : ''}</td>
+                                 <td className="p-4 text-slate-400">{String(r.Remark||'')}</td>
                                  {isAdmin && <td className="p-4 text-center flex justify-center gap-2">
                                    <button onClick={()=>setEditingRecord(r)} className="p-2 hover:bg-slate-200 rounded-lg text-indigo-600"><Pencil size={16}/></button>
                                    <button onClick={()=>deleteItem(r.id, 'records')} className="p-2 hover:bg-rose-100 rounded-lg text-rose-500"><Trash2 size={16}/></button>
                                  </td>}
                                </tr>
                              ))}
-                             {filteredRecords.length === 0 && <tr><td colSpan="9" className="text-center p-8 text-slate-400">No records found.</td></tr>}
+                             {filteredRecords.length === 0 && <tr><td colSpan="13" className="text-center p-8 text-slate-400">No records found.</td></tr>}
                           </tbody>
                         </table>
                      </div>
                   </div>
                 )}
-                
-                {/* ========================================================
-                   STATS TAB (蝬?蝯梯?)
-                ======================================================== */}
+
+                {/* TRACKING TAB */}
+                {activeTab === 'tracking' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4">
+                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(samples).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(samples).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(samples).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterKeeper} onChange={e=>setFilterKeeper(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Keepers</option>{[...new Set(samples.map(r=>r.Keeper).filter(Boolean))].map(p=><option key={p} value={p}>{p}</option>)}</select>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingSample({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Sample</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-x-auto">
+                        <table className="w-full text-left border-collapse whitespace-nowrap">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-xs uppercase text-slate-400">
+                               <th className="p-4">Project</th><th className="p-4">Stage</th><th className="p-4">Build</th><th className="p-4">Config</th>
+                               <th className="p-4">DUT ID</th><th className="p-4">SN</th><th className="p-4">Keeper</th>
+                               <th className="p-4">item1</th><th className="p-4">item2</th><th className="p-4">Failure</th><th className="p-4">FA report</th><th className="p-4">Remark</th>
+                               {isAdmin && <th className="p-4 text-center">Action</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-sm">
+                             {filteredSamples.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-4 font-bold">{String(r.Project||'')}</td>
+                                 <td className="p-4"><span className={`px-2 py-1 rounded-lg border text-xs ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-4 font-bold">{String(r.Build||'')}</td>
+                                 <td className="p-4 font-mono text-slate-500">{String(r.Config||'')}</td>
+                                 <td className="p-4 font-mono text-slate-600">{String(r['DUT ID']||'')}</td>
+                                 <td className="p-4 font-mono text-slate-600">{String(r.SN||'')}</td>
+                                 <td className="p-4 font-bold text-indigo-600">{String(r.Keeper||'')}</td>
+                                 <td className="p-4">{String(r.item1||'')}</td>
+                                 <td className="p-4">{String(r.item2||'')}</td>
+                                 <td className="p-4 text-rose-500 font-bold">{String(r.Failure||'')}</td>
+                                 <td className="p-4">{r['FA report'] ? <a href={r['FA report']} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Link</a> : ''}</td>
+                                 <td className="p-4 text-slate-400">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-4 text-center flex justify-center gap-2">
+                                   <button onClick={()=>setEditingSample(r)} className="p-2 hover:bg-slate-200 rounded-lg text-indigo-600"><Pencil size={16}/></button>
+                                   <button onClick={()=>deleteItem(r.id, 'samples')} className="p-2 hover:bg-rose-100 rounded-lg text-rose-500"><Trash2 size={16}/></button>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredSamples.length === 0 && <tr><td colSpan="13" className="text-center p-8 text-slate-400">No samples found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+                {/* CONFIG TAB */}
+                {activeTab === 'config_recipes' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4">
+                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(configsList).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(configsList).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(configsList).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingConfig({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Config</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-x-auto">
+                        <table className="w-full text-left border-collapse whitespace-nowrap">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-xs uppercase text-slate-400">
+                               <th className="p-4">Project</th><th className="p-4">Stage</th><th className="p-4">Build</th><th className="p-4">Config</th>
+                               <th className="p-4">Size</th><th className="p-4 w-1/3">Description</th><th className="p-4">Remark</th>
+                               {isAdmin && <th className="p-4 text-center">Action</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-sm">
+                             {filteredConfigs.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-4 font-bold">{String(r.Project||'')}</td>
+                                 <td className="p-4"><span className={`px-2 py-1 rounded-lg border text-xs ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-4 font-bold">{String(r.Build||'')}</td>
+                                 <td className="p-4 font-mono text-indigo-600 font-bold">{String(r.Config||'')}</td>
+                                 <td className="p-4">{String(r.Size||'')}</td>
+                                 <td className="p-4 whitespace-normal">{String(r.Description||'')}</td>
+                                 <td className="p-4 text-slate-400">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-4 text-center flex justify-center gap-2">
+                                   <button onClick={()=>setEditingConfig(r)} className="p-2 hover:bg-slate-200 rounded-lg text-indigo-600"><Pencil size={16}/></button>
+                                   <button onClick={()=>deleteItem(r.id, 'configsList')} className="p-2 hover:bg-rose-100 rounded-lg text-rose-500"><Trash2 size={16}/></button>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredConfigs.length === 0 && <tr><td colSpan="8" className="text-center p-8 text-slate-400">No configs found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+
+                {/* READINESS TAB */}
+                {activeTab === 'readiness' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4">
+                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(readinessItems).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(readinessItems).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Status</option>{[...new Set(readinessItems.map(r=>r.Status).filter(Boolean))].map(p=><option key={p} value={p}>{p}</option>)}</select>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingReadiness({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Item</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-x-auto">
+                        <table className="w-full text-left border-collapse whitespace-nowrap">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-xs uppercase text-slate-400">
+                               <th className="p-4">Project</th><th className="p-4">Stage</th><th className="p-4">Category</th><th className="p-4">Item</th>
+                               <th className="p-4">Numbers</th><th className="p-4">ETA</th><th className="p-4">Status</th><th className="p-4">PO</th><th className="p-4">Remark</th>
+                               {isAdmin && <th className="p-4 text-center">Action</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-sm">
+                             {filteredReadiness.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-4 font-bold">{String(r.Project||'')}</td>
+                                 <td className="p-4"><span className={`px-2 py-1 rounded-lg border text-xs ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-4 text-indigo-600 font-bold">{String(r.Category||'')}</td>
+                                 <td className="p-4 font-bold text-slate-700">{String(r.Item||'')}</td>
+                                 <td className="p-4">{String(r.Numbers||'')}</td>
+                                 <td className="p-4 font-mono text-slate-500 text-xs">{String(r.ETA||'')}</td>
+                                 <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-bold ${['Pending','Delayed','Fail'].includes(r.Status)?'bg-rose-100 text-rose-700':'bg-emerald-100 text-emerald-700'}`}>{String(r.Status||'')}</span></td>
+                                 <td className="p-4 font-mono text-slate-400">{String(r.PO||'')}</td>
+                                 <td className="p-4 text-slate-400">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-4 text-center flex justify-center gap-2">
+                                   <button onClick={()=>setEditingReadiness(r)} className="p-2 hover:bg-slate-200 rounded-lg text-indigo-600"><Pencil size={16}/></button>
+                                   <button onClick={()=>deleteItem(r.id, 'readinessItems')} className="p-2 hover:bg-rose-100 rounded-lg text-rose-500"><Trash2 size={16}/></button>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredReadiness.length === 0 && <tr><td colSpan="10" className="text-center p-8 text-slate-400">No readiness records found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+
+                {/* DOCUMENTS TAB */}
+                {activeTab === 'documents' && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4">
+                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(documents).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(documents).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingDocument({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Document</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-xs uppercase text-slate-400">
+                               <th className="p-4">Project</th><th className="p-4">Stage</th><th className="p-4">Document name</th><th className="p-4">Link</th><th className="p-4 w-1/3">Remark</th>
+                               {isAdmin && <th className="p-4 text-center">Action</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-sm">
+                             {filteredDocuments.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-4 font-bold">{String(r.Project||'')}</td>
+                                 <td className="p-4"><span className={`px-2 py-1 rounded-lg border text-xs ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-4 font-bold text-indigo-600">{String(r['Document name']||'')}</td>
+                                 <td className="p-4">{r.Link ? <a href={r.Link} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Open Link</a> : ''}</td>
+                                 <td className="p-4 text-slate-400">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-4 text-center flex justify-center gap-2">
+                                   <button onClick={()=>setEditingDocument(r)} className="p-2 hover:bg-slate-200 rounded-lg text-indigo-600"><Pencil size={16}/></button>
+                                   <button onClick={()=>deleteItem(r.id, 'documents')} className="p-2 hover:bg-rose-100 rounded-lg text-rose-500"><Trash2 size={16}/></button>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredDocuments.length === 0 && <tr><td colSpan="6" className="text-center p-8 text-slate-400">No documents found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+                {/* STATS TAB */}
                 {activeTab === 'stats' && (
-                   <div className="bg-white p-8 rounded-3xl shadow-sm border text-slate-600">
+                   <div className="bg-white p-8 rounded-3xl shadow-sm border text-slate-600 animate-in fade-in">
                       <h3 className="text-xl font-black text-indigo-600 uppercase mb-4">Project Overview Statistics</h3>
                       <p className="mb-6 text-sm">Comparison of configurations versus lab execution results.</p>
                       
@@ -579,33 +621,17 @@
                             <div className="text-xs uppercase font-bold text-slate-400 mt-2">Total Failures</div>
                          </div>
                       </div>
-                      
-                      <div className="mt-8 border rounded-2xl p-6">
-                         <h4 className="font-bold border-b pb-2 mb-4">Tests Per Project Breakdown</h4>
-                         {getDynamicOptions(records).projects.map(p => (
-                           <div key={p} className="flex justify-between items-center py-2 border-b last:border-0 hover:bg-slate-50 px-2 rounded">
-                              <span className="font-bold text-slate-800">{p}</span>
-                              <div className="flex gap-4">
-                                 <span className="text-emerald-500 font-bold text-sm">Pass: {records.filter(r=>r.Project===p && r.Result==='Pass').length}</span>
-                                 <span className="text-rose-500 font-bold text-sm">Fail: {records.filter(r=>r.Project===p && r.Result==='Fail').length}</span>
-                                 <span className="text-indigo-500 font-bold text-sm bg-indigo-50 px-2 rounded">Total: {records.filter(r=>r.Project===p).length}</span>
-                              </div>
-                           </div>
-                         ))}
-                      </div>
                    </div>
                 )}
-                
-                {/* ========================================================
-                   INVENTORY TAB (璅?摨怠?)
-                ======================================================== */}
+
+                {/* INVENTORY TAB */}
                 {activeTab === 'inventory' && (
-                   <div className="bg-white p-8 rounded-3xl shadow-sm border text-slate-600">
+                   <div className="bg-white p-8 rounded-3xl shadow-sm border text-slate-600 animate-in fade-in">
                       <h3 className="text-xl font-black text-indigo-600 uppercase mb-4">Sample Inventory Summary</h3>
                       <p className="mb-6 text-sm">Aggregated view from Sample Tracking indicating Keepers and Availability.</p>
                       
                       <div className="grid grid-cols-2 gap-6">
-                         {getDynamicOptions(samples, 'Project', 'Stage', 'Build', 'Config').keepers.map(k => (
+                         {getDynamicOptions(samples).keepers?.map(k => (
                            <div key={k} className="border p-4 bg-slate-50 rounded-2xl flex items-center justify-between">
                              <span className="font-bold text-lg"><span className="text-xs text-slate-400 block uppercase">Keeper</span> {k}</span>
                              <span className="text-3xl font-black text-indigo-500">{samples.filter(s=>s.Keeper===k).length} <span className="text-sm text-slate-400 font-normal">units</span></span>
@@ -614,38 +640,111 @@
                       </div>
                    </div>
                 )}
-
-                {/* ?嗡????? (?＊蝷箸摰?瑞宏????雿?雿?靘儐?詨??摩) */}
-                {['tracking', 'config_recipes', 'readiness', 'documents'].includes(activeTab) && (
-                  <div className="bg-white p-8 rounded-3xl shadow-sm border text-center text-slate-400 py-24">
-                     <Box size={48} className="mx-auto mb-4 text-slate-200" />
-                     <h3 className="text-xl font-bold">Standard Layout Applies</h3>
-                     <p className="max-w-md mx-auto mt-2">The table architecture for this module follows the same identical core as Records. Data is properly synced to the active Excel master sheet.</p>
-                  </div>
-                )}
-
                 </>
               )}
             </div>
           </main>
 
-          {/* 靽格敶? (Record Modal) */}
+          {/* Record Modal */}
           {editingRecord && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in shadow-2xl border border-white/20">
-                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">Edit REL Record</h3><button onClick={()=>setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
-                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('record', editingRecord)}} className="grid grid-cols-3 gap-6 text-[11px] font-bold">
-                    <div className="space-y-1"><BilingualLabel en="PROJECT" zh="撠?"/><input value={editingRecord.Project||''} onChange={e=>setEditingRecord({...editingRecord, Project:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="STAGE" zh="?挾"/><input list="stage-options" value={editingRecord.Stage||''} onChange={e=>setEditingRecord({...editingRecord, Stage:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="BUILD" zh="?"/><input value={editingRecord.Build||''} onChange={e=>setEditingRecord({...editingRecord, Build:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="CONFIG" zh="?蔭"/><input value={editingRecord.Config||''} onChange={e=>setEditingRecord({...editingRecord, Config:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="CATEGORY" zh="憭折?"/><input value={editingRecord.Category||''} onChange={e=>setEditingRecord({...editingRecord, Category:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="TEST ITEM" zh="皜祈岫?"/><input value={editingRecord['Test item']||''} onChange={e=>setEditingRecord({...editingRecord, 'Test item':e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="Q'TY" zh="?賊?"/><input type="number" value={editingRecord["Q'ty"]||''} onChange={e=>setEditingRecord({...editingRecord, "Q'ty":e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="RESULT" zh="蝯?"/><select value={editingRecord.Result||''} onChange={e=>setEditingRecord({...editingRecord, Result:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl">{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
-                    <div className="space-y-1"><BilingualLabel en="REMARK" zh="?酉"/><input value={editingRecord.Remark||''} onChange={e=>setEditingRecord({...editingRecord, Remark:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    
-                    <div className="col-span-3 pt-6"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl font-black shadow-xl uppercase">Update & Save to Excel</button></div>
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingRecord.Project ? 'Edit Record' : 'New Record'}</h3><button type="button" onClick={()=>setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('record', editingRecord)}} className="grid grid-cols-4 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Project<input value={editingRecord.Project||''} onChange={e=>setEditingRecord({...editingRecord, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Stage<input list="stage-options" value={editingRecord.Stage||''} onChange={e=>setEditingRecord({...editingRecord, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Build<input value={editingRecord.Build||''} onChange={e=>setEditingRecord({...editingRecord, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Config<input value={editingRecord.Config||''} onChange={e=>setEditingRecord({...editingRecord, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Category<input value={editingRecord.Category||''} onChange={e=>setEditingRecord({...editingRecord, Category:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Test item<input value={editingRecord['Test item']||''} onChange={e=>setEditingRecord({...editingRecord, 'Test item':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Q'ty<input type="number" value={editingRecord["Q'ty"]||''} onChange={e=>setEditingRecord({...editingRecord, "Q'ty":e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Start Date<input type="date" value={editingRecord.Start||''} onChange={e=>setEditingRecord({...editingRecord, Start:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">End Date<input type="date" value={editingRecord.End||''} onChange={e=>setEditingRecord({...editingRecord, End:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Result<select value={editingRecord.Result||''} onChange={e=>setEditingRecord({...editingRecord, Result:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"><option value=""></option>{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+                    <div className="col-span-1 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Report Link<input value={editingRecord.Report||''} onChange={e=>setEditingRecord({...editingRecord, Report:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
+                    <div className="col-span-4 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Remark<input value={editingRecord.Remark||''} onChange={e=>setEditingRecord({...editingRecord, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-4 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Record</button></div>
+                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Tracking Modal */}
+          {editingSample && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingSample.Project ? 'Edit Sample' : 'New Sample'}</h3><button type="button" onClick={()=>setEditingSample(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('sample', editingSample)}} className="grid grid-cols-4 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Project<input value={editingSample.Project||''} onChange={e=>setEditingSample({...editingSample, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Stage<input value={editingSample.Stage||''} onChange={e=>setEditingSample({...editingSample, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Build<input value={editingSample.Build||''} onChange={e=>setEditingSample({...editingSample, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Config<input value={editingSample.Config||''} onChange={e=>setEditingSample({...editingSample, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DUT ID<input value={editingSample['DUT ID']||''} onChange={e=>setEditingSample({...editingSample, 'DUT ID':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">SN<input value={editingSample.SN||''} onChange={e=>setEditingSample({...editingSample, SN:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Keeper<input value={editingSample.Keeper||''} onChange={e=>setEditingSample({...editingSample, Keeper:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM1<input value={editingSample.item1||''} onChange={e=>setEditingSample({...editingSample, item1:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM2<input value={editingSample.item2||''} onChange={e=>setEditingSample({...editingSample, item2:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-rose-500 uppercase tracking-widest text-[9px]">FAILURE<input value={editingSample.Failure||''} onChange={e=>setEditingSample({...editingSample, Failure:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-rose-50 border border-rose-200 rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">FA REPORT LINK<input value={editingSample['FA report']||''} onChange={e=>setEditingSample({...editingSample, 'FA report':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
+                    <div className="col-span-4 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingSample.Remark||''} onChange={e=>setEditingSample({...editingSample, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-4 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Sample</button></div>
+                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Config Modal */}
+          {editingConfig && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-3xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingConfig.Project ? 'Edit Config' : 'New Config'}</h3><button type="button" onClick={()=>setEditingConfig(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('config', editingConfig)}} className="grid grid-cols-2 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingConfig.Project||''} onChange={e=>setEditingConfig({...editingConfig, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingConfig.Stage||''} onChange={e=>setEditingConfig({...editingConfig, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">BUILD<input value={editingConfig.Build||''} onChange={e=>setEditingConfig({...editingConfig, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">CONFIG<input value={editingConfig.Config||''} onChange={e=>setEditingConfig({...editingConfig, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">SIZE<input value={editingConfig.Size||''} onChange={e=>setEditingConfig({...editingConfig, Size:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DESCRIPTION<input value={editingConfig.Description||''} onChange={e=>setEditingConfig({...editingConfig, Description:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingConfig.Remark||''} onChange={e=>setEditingConfig({...editingConfig, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Config</button></div>
+                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Readiness Modal */}
+          {editingReadiness && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingReadiness.Project ? 'Edit Readiness' : 'New Item'}</h3><button type="button" onClick={()=>setEditingReadiness(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('readiness', editingReadiness)}} className="grid grid-cols-3 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingReadiness.Project||''} onChange={e=>setEditingReadiness({...editingReadiness, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingReadiness.Stage||''} onChange={e=>setEditingReadiness({...editingReadiness, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">CATEGORY<input value={editingReadiness.Category||''} onChange={e=>setEditingReadiness({...editingReadiness, Category:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM<input value={editingReadiness.Item||''} onChange={e=>setEditingReadiness({...editingReadiness, Item:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">NUMBERS<input type="number" value={editingReadiness.Numbers||''} onChange={e=>setEditingReadiness({...editingReadiness, Numbers:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ETA<input type="date" value={editingReadiness.ETA||''} onChange={e=>setEditingReadiness({...editingReadiness, ETA:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STATUS<select value={editingReadiness.Status||''} onChange={e=>setEditingReadiness({...editingReadiness, Status:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"><option value=""></option><option value="Ready">Ready</option><option value="Pending">Pending</option><option value="Delayed">Delayed</option></select></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PO<input value={editingReadiness.PO||''} onChange={e=>setEditingReadiness({...editingReadiness, PO:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-3 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingReadiness.Remark||''} onChange={e=>setEditingReadiness({...editingReadiness, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-3 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Item</button></div>
+                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Documents Modal */}
+          {editingDocument && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-3xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingDocument.Project ? 'Edit Document' : 'New Document'}</h3><button type="button" onClick={()=>setEditingDocument(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('document', editingDocument)}} className="grid grid-cols-2 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingDocument.Project||''} onChange={e=>setEditingDocument({...editingDocument, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingDocument.Stage||''} onChange={e=>setEditingDocument({...editingDocument, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DOCUMENT NAME<input value={editingDocument['Document name']||''} onChange={e=>setEditingDocument({...editingDocument, 'Document name':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">LINK<input value={editingDocument.Link||''} onChange={e=>setEditingDocument({...editingDocument, Link:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingDocument.Remark||''} onChange={e=>setEditingDocument({...editingDocument, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Document</button></div>
                  </form>
               </div>
             </div>
@@ -654,11 +753,8 @@
       );
     }
 
-    // ?? React
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
 </body>
 </html>
-
-
