@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -31,7 +31,7 @@
 
   <!-- Main Application Script -->
   <script type="text/babel" data-type="module">
-    // --- 1. 從全域變數提取所需套件 ---
+    // --- 1. 敺???豢????憟辣 ---
     const { useState, useEffect, useMemo, useRef } = React;
     const { 
       Table, PlusCircle, Trash2, Search, Lock,
@@ -39,8 +39,7 @@
       Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
       FolderSearch, AlertCircle, FolderLock, Package
     } = window.LucideReact;
-    // dayjs 與 XLSX 已存在於 window 中，可直接使用
-
+    // dayjs ??XLSX 撌脣??冽 window 銝哨??舐?乩蝙??
     // ==========================================
     // IndexedDB Helper for Directory Handle
     // ==========================================
@@ -84,12 +83,12 @@
 
     const generateId = () => Math.random().toString(36).substr(2, 9);
 
-    // --- 全域常量 ---
+    // --- ?典?撣賊? ---
     const STAGE_SUGGESTIONS = ['All', 'P2', 'EVT', 'DVT', 'PVT', 'MP'];
     const RESULTS = ['On-going', 'Pass', 'Fail', 'On-hold', 'N/A', 'Not Start'];
     const READINESS_STATUSES = ['Not start', 'Purchasing', 'Arrived'];
 
-    // --- 工具與排序函式 ---
+    // --- 撌亙??摨撘?---
     const getStageRank = (stage) => {
       const s = String(stage || '').toUpperCase();
       const ranks = { 'ALL': 0, 'P2': 1, 'EVT': 2, 'DVT': 3, 'PVT': 4, 'MP': 5 };
@@ -112,7 +111,7 @@
       return configA.localeCompare(configB, undefined, { numeric: true });
     };
 
-    // --- 樣式函式 ---
+    // --- 璅???賢? ---
     const getStageStyle = (s) => {
       const m = { P2: 'bg-slate-200 text-slate-700 border-slate-300', EVT: 'bg-orange-100 text-orange-600 border-orange-200', DVT: 'bg-indigo-100 text-indigo-600 border-indigo-200', PVT: 'bg-purple-100 text-purple-600 border-purple-200', MP: 'bg-green-100 text-green-600 border-green-200', ALL: 'bg-blue-100 text-blue-600 border-blue-200' };
       return m[String(s).toUpperCase()] || 'bg-slate-100 border-slate-200';
@@ -123,7 +122,7 @@
       return m[String(r)] || 'bg-slate-100 text-slate-400';
     };
 
-    // --- 雙語標籤組件 ---
+    // --- ??璅惜蝯辣 ---
     const BilingualLabel = ({ en, zh, dark = false }) => (
       <span className={`flex flex-col text-left ${dark ? 'text-slate-400' : 'text-slate-500'} pointer-events-none`}>
         <span className="text-[10px] font-black uppercase tracking-wider leading-tight block">{String(en)}</span>
@@ -139,16 +138,16 @@
     );
 
     // ==========================================
-    // 主要應用程式元件
+    // 銝餉??蝔??辣
     // ==========================================
     function App() {
-      // --- 系統狀態 ---
+      // --- 蝟餌絞???---
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
       const [message, setMessage] = useState('');
 
-      // --- 數據狀態 ---
+      // --- ?豢????---
       const [records, setRecords] = useState([]);
       const [samples, setSamples] = useState([]);
       const [configsList, setConfigsList] = useState([]); 
@@ -159,28 +158,28 @@
       const [isAdmin, setIsAdmin] = useState(false);
       const [isSidebarOpen, setIsSidebarOpen] = useState(true);
       
-      // --- 各區篩選 ---
+      // --- ??蝭拚 ---
       const [recFilter, setRecFilter] = useState({ project: '', stage: '', build: '', config: '', result: '' });
       const [trackFilter, setTrackFilter] = useState({ project: '', stage: '', build: '', keeper: '' });
       const [cfgFilter, setCfgFilter] = useState({ project: '', stage: '', build: '' });
       const [readFilter, setReadFilter] = useState({ project: '', stage: '', status: '' });
       const [docFilter, setDocFilter] = useState({ project: '', stage: '' });
 
-      // --- 編輯狀態 ---
+      // --- 蝺刻摩???---
       const [editingRecord, setEditingRecord] = useState(null);
       const [editingSample, setEditingSample] = useState(null);
       const [editingConfig, setEditingConfig] = useState(null);
       const [editingReadiness, setEditingReadiness] = useState(null);
       const [editingDocument, setEditingDocument] = useState(null);
 
-      // --- 表單初始化 ---
+      // --- 銵典????---
       const [newRecord, setNewRecord] = useState({ project: '', stage: 'P2', build: '', config: '', category: '', item: '', qty: '', start: '', end: '', result: 'Not Start', report: '', remark: '' });
       const [newSample, setNewSample] = useState({ project: '', stage: 'P2', build: '', config: '', dutId: '', sn: '', keeper: '', item1: '', item2: '', failure: '', faReport: '', remark: '' });
       const [newConfigEntry, setNewConfigEntry] = useState({ project: '', stage: 'P2', build: '', config: '', size: '', description: '', remark: '' });
       const [newReadiness, setNewReadiness] = useState({ project: '', stage: 'P2', category: '', item: '', numbers: '', eta: '', status: 'Not start', po: '', remark: '' });
       const [newDocument, setNewDocument] = useState({ project: '', stage: 'P2', name: '', link: '', remark: '' });
 
-      // 1. 初始化讀取本地 Handle
+      // 1. ???????Handle
       useEffect(() => {
         const initLocalFS = async () => {
           try {
@@ -190,7 +189,7 @@
               if (hasPerm) {
                 setDirHandle(storedHandle);
                 await loadAndCleanupExcelData(storedHandle, retentionDays);
-                setActiveTab('records'); // 成功讀取後跳轉
+                setActiveTab('records'); // ??霈??頝唾?
               }
             }
           } catch (err) {
@@ -200,14 +199,13 @@
         initLocalFS();
       }, []);
 
-      // 變更 Retention Days
+      // 霈 Retention Days
       useEffect(() => {
         localStorage.setItem('retention_days', retentionDays.toString());
       }, [retentionDays]);
 
 
-      // 2. 本地 Excel 讀寫核心邏輯
-      const autoCleanup = async (handle, rDays) => {
+      // 2. ?砍 Excel 霈撖急敹?頛?      const autoCleanup = async (handle, rDays) => {
         if (!handle) return;
         try {
           const thresholdDate = dayjs().subtract(rDays, 'day');
@@ -271,8 +269,7 @@
           
           setMessage('Ready.');
           
-          // 非同步執行清理
-          autoCleanup(handle, rDays);
+          // ??甇亙銵???          autoCleanup(handle, rDays);
 
         } catch(err) {
           console.error('Load Excel failed:', err);
@@ -280,7 +277,7 @@
         }
       };
 
-      // 統一存檔點，帶入欲儲存的新狀態避免 async stale state
+      // 蝯曹?摮?暺?撣嗅甈脣摮??啁????async stale state
       const saveToExcel = async (payload) => {
         if (!dirHandle) return;
         setMessage('Saving...');
@@ -324,23 +321,40 @@
         }
       };
 
-      // 3. 過濾與排序運算
-      const filteredRecords = useMemo(() => records.filter(r => {
-        const f = recFilter;
-        const matchSearch = !searchTerm || [r.Project, r['Test item'], r.Config].some(v => String(v||'').toLowerCase().includes(searchTerm.toLowerCase()));
-        return matchSearch && (!f.project || r.Project === f.project) && (!f.stage || r.Stage === f.stage) && (!f.build || r.Build === f.build) && (!f.config || r.Config === f.config) && (!f.result || r.Result === f.result);
-      }).sort((a,b) => universalSorter({project: a.Project, stage: a.Stage, build: a.Build}, {project: b.Project, stage: b.Stage, build: b.Build})), [records, recFilter, searchTerm]);
-
-      // 動態選單生成
-      const getDynamicOptions = (data, pField='Project', sField='Stage', bField='Build', cField='Config') => ({
-        projects: [...new Set(data.map(i => i[pField]).filter(Boolean))].sort(),
-        stages: [...new Set(data.map(i => i[sField]).filter(Boolean))].sort((a,b) => getStageRank(a) - getStageRank(b)),
-        builds: [...new Set(data.map(i => i[bField]).filter(Boolean))].sort(),
-        configs: [...new Set(data.map(i => i[cField]).filter(Boolean))].sort(),
-        keepers: [...new Set(data.map(i => i.Keeper).filter(Boolean))].sort(),
+      // 3. ?蕪??摨?蝞?            const filteredRecords = records.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
+         if (filterConfig !== 'All' && r.Config !== filterConfig) return false;
+         if (filterResult !== 'All' && r.Result !== filterResult) return false;
+         return true;
+      });
+      const filteredSamples = samples.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
+         if (filterKeeper !== 'All' && r.Keeper !== filterKeeper) return false;
+         return true;
+      });
+      const filteredConfigs = configsList.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
+         return true;
+      });
+      const filteredReadiness = readinessItems.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (filterStatus !== 'All' && r.Status !== filterStatus) return false;
+         return true;
+      });
+      const filteredDocuments = documents.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         return true;
       });
 
-      // 4. CRUD 操作
+      // 4. CRUD ??
       const handleUpdate = async (type, item) => {
         let payload = {};
         if (type === 'record') { const n = records.map(x => x.id === item.id ? item : x); setRecords(n); payload.records = n; }
@@ -382,7 +396,7 @@
         <div className="min-h-screen bg-[#f1f5f9] flex flex-col md:flex-row font-sans text-slate-900 overflow-hidden">
           <datalist id="stage-options">{STAGE_SUGGESTIONS.map(o => <option key={o} value={o} />)}</datalist>
 
-          {/* 側邊欄 */}
+          {/* ?湧?甈?*/}
           <nav className={`h-screen bg-slate-900 text-white flex flex-col shadow-2xl transition-all ${isSidebarOpen ? 'w-72' : 'w-20'}`}>
             <div className="p-6 flex items-center justify-between border-b border-slate-800">
               {isSidebarOpen ? <div className="flex flex-col"><div className="flex items-center gap-3 text-indigo-500 font-black text-xl">HQA PORTAL</div><div className="text-xs text-slate-400 font-medium tracking-widest mt-1">BY ESMOND</div></div> : <Lock className="mx-auto text-indigo-500" />}
@@ -390,14 +404,14 @@
             </div>
             <div className="flex-1 mt-6 px-4 space-y-1 overflow-y-auto">
               {[
-                { id: 'records', icon: Table, zh: '實驗紀錄' },
-                { id: 'tracking', icon: Box, zh: '樣本追蹤' },
-                { id: 'config_recipes', icon: ClipboardList, zh: '配置規格' },
-                { id: 'readiness', icon: Truck, zh: '採購準備' },
-                { id: 'documents', icon: FolderOpen, zh: '文件區' },
-                { id: 'stats', icon: PieChart, zh: '綜合統計' },
-                { id: 'inventory', icon: Package, zh: '樣本庫存' },
-                { id: 'settings', icon: Settings, zh: '系統設定' }
+                { id: 'records', icon: Table, zh: '撖阡?蝝?? },
+                { id: 'tracking', icon: Box, zh: '璅?餈質馱' },
+                { id: 'config_recipes', icon: ClipboardList, zh: '?蔭閬' },
+                { id: 'readiness', icon: Truck, zh: '?∟頃皞?' },
+                { id: 'documents', icon: FolderOpen, zh: '?辣?' },
+                { id: 'stats', icon: PieChart, zh: '蝬?蝯梯?' },
+                { id: 'inventory', icon: Package, zh: '璅?摨怠?' },
+                { id: 'settings', icon: Settings, zh: '蝟餌絞閮剖?' }
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -418,7 +432,7 @@
             </div>
           </nav>
 
-          {/* 主內容區 */}
+          {/* 銝餃摰孵? */}
           <main className="flex-1 flex flex-col overflow-hidden bg-slate-50">
             <header className="px-8 py-6 bg-white border-b flex justify-between items-center">
               <div><h2 className="text-2xl font-black uppercase">{activeTab.replace('_', ' ')}</h2>
@@ -471,7 +485,7 @@
                 ======================================================== */}
                 {activeTab === 'records' && (
                   <div className="space-y-6 animate-in fade-in font-bold">
-                     {/* 獨立篩選器 */}
+                     {/* ?函?蝭拚??*/}
                      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4 text-xs">
                         <Filter size={16} className="text-indigo-500"/>
                         <select value={recFilter.project} onChange={e=>setRecFilter({...recFilter, project:e.target.value})} className="bg-slate-50 rounded p-1">
@@ -482,18 +496,18 @@
                         </select>
                      </div>
 
-                     {/* 新增表單 */}
+                     {/* ?啣?銵典 */}
                      {isAdmin && (
                        <div className="bg-white p-6 rounded-3xl border shadow-sm grid grid-cols-6 gap-3">
-                          <div className="col-span-1"><BilingualLabel en="PROJECT" zh="專案"/><input className="w-full p-2 border rounded mt-1" value={newRecord.project} onChange={e=>setNewRecord({...newRecord, project:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="STAGE" zh="階段"/><input list="stage-options" className="w-full p-2 border rounded mt-1" value={newRecord.stage} onChange={e=>setNewRecord({...newRecord, stage:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="BUILD" zh="版本"/><input className="w-full p-2 border rounded mt-1" value={newRecord.build} onChange={e=>setNewRecord({...newRecord, build:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="CONFIG" zh="配置"/><input className="w-full p-2 border rounded mt-1" value={newRecord.config} onChange={e=>setNewRecord({...newRecord, config:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="CATEGORY" zh="大類"/><input className="w-full p-2 border rounded mt-1" value={newRecord.category} onChange={e=>setNewRecord({...newRecord, category:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="TEST ITEM" zh="測試項目"/><input className="w-full p-2 border rounded mt-1" value={newRecord.item} onChange={e=>setNewRecord({...newRecord, item:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="Q'TY" zh="數量"/><input type="number" className="w-full p-2 border rounded mt-1" value={newRecord.qty} onChange={e=>setNewRecord({...newRecord, qty:e.target.value})}/></div>
-                          <div className="col-span-1"><BilingualLabel en="RESULT" zh="結果"/><select className="w-full p-2 border rounded mt-1" value={newRecord.result} onChange={e=>setNewRecord({...newRecord, result:e.target.value})}>{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
-                          <div className="col-span-3"><BilingualLabel en="REMARK" zh="備註"/><input className="w-full p-2 border rounded mt-1" value={newRecord.remark} onChange={e=>setNewRecord({...newRecord, remark:e.target.value})}/></div>
+                          <div className="col-span-1"><BilingualLabel en="PROJECT" zh="撠?"/><input className="w-full p-2 border rounded mt-1" value={newRecord.project} onChange={e=>setNewRecord({...newRecord, project:e.target.value})}/></div>
+                          <div className="col-span-1"><BilingualLabel en="STAGE" zh="?挾"/><input list="stage-options" className="w-full p-2 border rounded mt-1" value={newRecord.stage} onChange={e=>setNewRecord({...newRecord, stage:e.target.value})}/></div>
+                          <div className="col-span-1"><BilingualLabel en="BUILD" zh="?"/><input className="w-full p-2 border rounded mt-1" value={newRecord.build} onChange={e=>setNewRecord({...newRecord, build:e.target.value})}/></div>
+                          <div className="col-span-1"><BilingualLabel en="CONFIG" zh="?蔭"/><input className="w-full p-2 border rounded mt-1" value={newRecord.config} onChange={e=>setNewRecord({...newRecord, config:e.target.value})}/></div>
+                          <div className="col-span-1"><BilingualLabel en="CATEGORY" zh="憭折?"/><input className="w-full p-2 border rounded mt-1" value={newRecord.category} onChange={e=>setNewRecord({...newRecord, category:e.target.value})}/></div>
+                          <div className="col-span-1"><BilingualLabel en="TEST ITEM" zh="皜祈岫?"/><input className="w-full p-2 border rounded mt-1" value={newRecord.item} onChange={e=>setNewRecord({...newRecord, item:e.target.value})}/></div>
+                          <div className="col-span-1"><BilingualLabel en="Q'TY" zh="?賊?"/><input type="number" className="w-full p-2 border rounded mt-1" value={newRecord.qty} onChange={e=>setNewRecord({...newRecord, qty:e.target.value})}/></div>
+                          <div className="col-span-1"><BilingualLabel en="RESULT" zh="蝯?"/><select className="w-full p-2 border rounded mt-1" value={newRecord.result} onChange={e=>setNewRecord({...newRecord, result:e.target.value})}>{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+                          <div className="col-span-3"><BilingualLabel en="REMARK" zh="?酉"/><input className="w-full p-2 border rounded mt-1" value={newRecord.remark} onChange={e=>setNewRecord({...newRecord, remark:e.target.value})}/></div>
                           
                           <button onClick={()=>handleAdd('records', { 
                             Project: newRecord.project, Stage: newRecord.stage, Build: newRecord.build, Config: newRecord.config, 
@@ -503,19 +517,19 @@
                        </div>
                      )}
 
-                     {/* 數據列表 */}
+                     {/* ?豢??” */}
                      <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-collapse">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-xs uppercase text-slate-400">
-                               <th className="p-4"><BilingualLabel en="PROJECT" zh="專案"/></th>
-                               <th className="p-4"><BilingualLabel en="STAGE" zh="階段"/></th>
-                               <th className="p-4"><BilingualLabel en="BUILD" zh="版本"/></th>
-                               <th className="p-4"><BilingualLabel en="CONFIG" zh="配置"/></th>
-                               <th className="p-4"><BilingualLabel en="CATEGORY" zh="大類"/></th>
-                               <th className="p-4"><BilingualLabel en="TEST ITEM" zh="測試項目"/></th>
-                               <th className="p-4"><BilingualLabel en="Q'TY" zh="數量"/></th>
-                               <th className="p-4"><BilingualLabel en="RESULT" zh="結果"/></th>
+                               <th className="p-4"><BilingualLabel en="PROJECT" zh="撠?"/></th>
+                               <th className="p-4"><BilingualLabel en="STAGE" zh="?挾"/></th>
+                               <th className="p-4"><BilingualLabel en="BUILD" zh="?"/></th>
+                               <th className="p-4"><BilingualLabel en="CONFIG" zh="?蔭"/></th>
+                               <th className="p-4"><BilingualLabel en="CATEGORY" zh="憭折?"/></th>
+                               <th className="p-4"><BilingualLabel en="TEST ITEM" zh="皜祈岫?"/></th>
+                               <th className="p-4"><BilingualLabel en="Q'TY" zh="?賊?"/></th>
+                               <th className="p-4"><BilingualLabel en="RESULT" zh="蝯?"/></th>
                                {isAdmin && <th className="p-4 text-center">ACTION</th>}
                              </tr>
                           </thead>
@@ -544,7 +558,7 @@
                 )}
                 
                 {/* ========================================================
-                   STATS TAB (綜合統計)
+                   STATS TAB (蝬?蝯梯?)
                 ======================================================== */}
                 {activeTab === 'stats' && (
                    <div className="bg-white p-8 rounded-3xl shadow-sm border text-slate-600">
@@ -583,7 +597,7 @@
                 )}
                 
                 {/* ========================================================
-                   INVENTORY TAB (樣本庫存)
+                   INVENTORY TAB (璅?摨怠?)
                 ======================================================== */}
                 {activeTab === 'inventory' && (
                    <div className="bg-white p-8 rounded-3xl shadow-sm border text-slate-600">
@@ -601,7 +615,7 @@
                    </div>
                 )}
 
-                {/* 其他原有分頁 (僅顯示未完全遷移的所有欄位佔位，依循相同邏輯) */}
+                {/* ?嗡????? (?＊蝷箸摰?瑞宏????雿?雿?靘儐?詨??摩) */}
                 {['tracking', 'config_recipes', 'readiness', 'documents'].includes(activeTab) && (
                   <div className="bg-white p-8 rounded-3xl shadow-sm border text-center text-slate-400 py-24">
                      <Box size={48} className="mx-auto mb-4 text-slate-200" />
@@ -615,21 +629,21 @@
             </div>
           </main>
 
-          {/* 修改彈窗 (Record Modal) */}
+          {/* 靽格敶? (Record Modal) */}
           {editingRecord && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
               <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in shadow-2xl border border-white/20">
                  <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">Edit REL Record</h3><button onClick={()=>setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
                  <form onSubmit={e=>{e.preventDefault(); handleUpdate('record', editingRecord)}} className="grid grid-cols-3 gap-6 text-[11px] font-bold">
-                    <div className="space-y-1"><BilingualLabel en="PROJECT" zh="專案"/><input value={editingRecord.Project||''} onChange={e=>setEditingRecord({...editingRecord, Project:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="STAGE" zh="階段"/><input list="stage-options" value={editingRecord.Stage||''} onChange={e=>setEditingRecord({...editingRecord, Stage:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="BUILD" zh="版本"/><input value={editingRecord.Build||''} onChange={e=>setEditingRecord({...editingRecord, Build:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="CONFIG" zh="配置"/><input value={editingRecord.Config||''} onChange={e=>setEditingRecord({...editingRecord, Config:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="CATEGORY" zh="大類"/><input value={editingRecord.Category||''} onChange={e=>setEditingRecord({...editingRecord, Category:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="TEST ITEM" zh="測試項目"/><input value={editingRecord['Test item']||''} onChange={e=>setEditingRecord({...editingRecord, 'Test item':e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="Q'TY" zh="數量"/><input type="number" value={editingRecord["Q'ty"]||''} onChange={e=>setEditingRecord({...editingRecord, "Q'ty":e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1"><BilingualLabel en="RESULT" zh="結果"/><select value={editingRecord.Result||''} onChange={e=>setEditingRecord({...editingRecord, Result:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl">{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
-                    <div className="space-y-1"><BilingualLabel en="REMARK" zh="備註"/><input value={editingRecord.Remark||''} onChange={e=>setEditingRecord({...editingRecord, Remark:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1"><BilingualLabel en="PROJECT" zh="撠?"/><input value={editingRecord.Project||''} onChange={e=>setEditingRecord({...editingRecord, Project:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1"><BilingualLabel en="STAGE" zh="?挾"/><input list="stage-options" value={editingRecord.Stage||''} onChange={e=>setEditingRecord({...editingRecord, Stage:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1"><BilingualLabel en="BUILD" zh="?"/><input value={editingRecord.Build||''} onChange={e=>setEditingRecord({...editingRecord, Build:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1"><BilingualLabel en="CONFIG" zh="?蔭"/><input value={editingRecord.Config||''} onChange={e=>setEditingRecord({...editingRecord, Config:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1"><BilingualLabel en="CATEGORY" zh="憭折?"/><input value={editingRecord.Category||''} onChange={e=>setEditingRecord({...editingRecord, Category:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1"><BilingualLabel en="TEST ITEM" zh="皜祈岫?"/><input value={editingRecord['Test item']||''} onChange={e=>setEditingRecord({...editingRecord, 'Test item':e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1"><BilingualLabel en="Q'TY" zh="?賊?"/><input type="number" value={editingRecord["Q'ty"]||''} onChange={e=>setEditingRecord({...editingRecord, "Q'ty":e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1"><BilingualLabel en="RESULT" zh="蝯?"/><select value={editingRecord.Result||''} onChange={e=>setEditingRecord({...editingRecord, Result:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl">{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+                    <div className="space-y-1"><BilingualLabel en="REMARK" zh="?酉"/><input value={editingRecord.Remark||''} onChange={e=>setEditingRecord({...editingRecord, Remark:e.target.value})} className="w-full p-2 bg-slate-50 border rounded-xl"/></div>
                     
                     <div className="col-span-3 pt-6"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl font-black shadow-xl uppercase">Update & Save to Excel</button></div>
                  </form>
@@ -640,9 +654,11 @@
       );
     }
 
-    // 掛載 React
+    // ?? React
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
 </body>
 </html>
+
+
