@@ -28,9 +28,16 @@
   </script>
 </head>
 <body class="bg-slate-50 text-slate-900">
-  <div id="compatibility-overlay">
-    <div style="font-size: 4rem; margin-bottom: 2rem;">??</div>
-    <h2 style="font-weight: 900; font-size: 1.5rem; color: #1e293b;">Browser Not Supported / ?��?不支??/h2>
+    <div id="compatibility-overlay">
+    <div style="font-size: 4rem; margin-bottom: 2rem;">🚀</div>
+    <h2 style="font-weight: 900; font-size: 1.5rem; color: #1e293b;">Browser Not Supported / 環境不支援</h2>
+    <p style="color: #64748b; margin: 1rem 0; max-width: 400px; line-height: 1.6;">
+      REL Portal requires the <b>File System Access API</b> to manage local Excel files.<br/>
+      Please use <b>Google Chrome</b> or <b>Microsoft Edge</b> on a Desktop and ensure the site is running under <b>HTTPS</b>.
+    </p>
+    <a href="https://www.google.com/chrome/" target="_blank" style="background: #4f46e5; color: #fff; padding: 0.75rem 1.5rem; border-radius: 0.75rem; text-decoration: none; font-weight: bold; margin-top: 1rem;">Download Chrome</a>
+  </div>
+    <h2 style="font-weight: 900; font-size: 1.5rem; color: #1e293b;">Browser Not Supported / ?啣?銝??/h2>
     <p style="color: #64748b; margin: 1rem 0; max-width: 400px; line-height: 1.6;">
       REL Portal requires the <b>File System Access API</b> to manage local Excel files.<br/>
       Please use <b>Google Chrome</b> or <b>Microsoft Edge</b> on a Desktop and ensure the site is running under <b>HTTPS</b>.
@@ -342,14 +349,14 @@
             </div>
             <div className="flex-1 mt-6 px-4 space-y-1 overflow-y-auto">
               {[
-                { id: 'records', icon: Table, zh: '實�?紀?? },
-                { id: 'tracking', icon: Box, zh: '�?��追蹤' },
-                { id: 'config_recipes', icon: ClipboardList, zh: '?�置規格' },
-                { id: 'readiness', icon: CheckCircle, zh: '準�??�?? },
-                { id: 'documents', icon: FileText, zh: '?�件管�?' },
-                { id: 'stats', icon: PieChart, zh: '綜�?統�?' },
-                { id: 'inventory', icon: Package, zh: '�?��庫�?' },
-                { id: 'settings', icon: Settings, zh: '系統設�?' }
+                { id: 'records', icon: Table, zh: '撖阡?蝝?? },
+                { id: 'tracking', icon: Box, zh: '璅?餈質馱' },
+                { id: 'config_recipes', icon: ClipboardList, zh: '?蔭閬' },
+                { id: 'readiness', icon: CheckCircle, zh: '皞???? },
+                { id: 'documents', icon: FileText, zh: '?辣蝞∠?' },
+                { id: 'stats', icon: PieChart, zh: '蝬?蝯梯?' },
+                { id: 'inventory', icon: Package, zh: '璅?摨怠?' },
+                { id: 'settings', icon: Settings, zh: '蝟餌絞閮剖?' }
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -421,18 +428,18 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專�?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?�段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / ?�本</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / ?�置</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/6">Test item / 測試?�目</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Q'ty / ?��?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Start / ?��?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">End / 結�?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Result / 結�?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Report / ?��?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / ?�註</th>
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 撠?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?挾</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / ?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / ?蔭</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 憿</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/6">Test item / 皜祈岫?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Q'ty / ?賊?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Start / ??</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">End / 蝯?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Result / 蝯?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Report / ?勗?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / ?酉</th>
                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action</th>}
                              </tr>
                           </thead>
@@ -483,19 +490,19 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 text-left">Project / 專�?</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?�段</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / ?�本</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / ?�置</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">DUT ID / �??編�?</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">SN / 序�?</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 保管�?/th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 1 / ?�目 1</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 2 / ?�目 2</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Failure / 不良?�象</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">FA Report / FA ?��?</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5 text-left">Remark / ?�註</th>
-                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ?��?</th>}
+                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 text-left">Project / 撠?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?挾</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / ?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / ?蔭</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">DUT ID / 璅??蝺刻?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">SN / 摨?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 靽恣鈭?/th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 1 / ? 1</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 2 / ? 2</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Failure / 銝?曇情</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">FA Report / FA ?勗?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5 text-left">Remark / ?酉</th>
+                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ??</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -542,14 +549,14 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 w-[10%]">Project / 專�?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Stage / ?�段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Build / ?�本</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Config / ?�置</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Size / 尺寸</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[25%]">Description / ?�述</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[20%]">Remark / ?�註</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ?��?</th>}
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 w-[10%]">Project / 撠?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Stage / ?挾</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Build / ?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Config / ?蔭</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Size / 撠箏站</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[25%]">Description / ?膩</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[20%]">Remark / ?酉</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ??</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -592,16 +599,16 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專�?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?�段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Item / ?�次</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Numbers / ?��?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">ETA / ?��??��?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Status / ?�??/th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">PO / ?�購??/th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / ?�註</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ?��?</th>}
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 撠?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?挾</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 憿</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Item / ?活</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Numbers / ?賊?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">ETA / ???圈?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Status / ???/th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">PO / ?∟頃??/th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / ?酉</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ??</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -645,12 +652,12 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專�?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?�段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Document Name / ?�件?�稱</th>
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 撠?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?挾</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Document Name / ?辣?迂</th>
                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Link / ???</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Remark / ?�註</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ?��?</th>}
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Remark / ?酉</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ??</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
