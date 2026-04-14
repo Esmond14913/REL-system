@@ -47,6 +47,7 @@
       document.getElementById('root').style.display = 'none';
     }
   </script>
+
   <script type="text/babel" data-type="module">
     const { useState, useEffect, useMemo, useRef } = React;
     const { 
@@ -128,23 +129,17 @@
 
     function App() {
       const [activeTab, setActiveTab] = useState('settings'); 
-      const [dirHandle, setDirHandle] = useState(null);
-      const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
-      const [message, setMessage] = useState('');
-
       const [records, setRecords] = useState([]);
       const [samples, setSamples] = useState([]);
-      const [configsList, setConfigsList] = useState([]); 
+      const [configsList, setConfigsList] = useState([]);
       const [readinessItems, setReadinessItems] = useState([]);
       const [documents, setDocuments] = useState([]);
-
-      const [searchTerm, setSearchTerm] = useState('');
+      const [dirHandle, setDirHandle] = useState(null);
+      const [message, setMessage] = useState('Welcome to REL Portal');
+      const [retentionDays, setRetentionDays] = useState(() => parseInt(localStorage.getItem('retention_days') || '30'));
       const [isAdmin, setIsAdmin] = useState(false);
-      const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
-      const [statsCalcMode, setStatsCalcMode] = useState('overall'); // 'overall' | 'category'
-      const [inventoryGroupBy, setInventoryGroupBy] = useState('keeper'); // 'keeper' | 'stagebuild'
-      const [inventorySubView, setInventorySubView] = useState('detail'); // 'detail' | 'config'
+      const [inventoryGroupBy, setInventoryGroupBy] = useState('Keeper');
+      const [inventorySubView, setInventorySubView] = useState('Detail');
 
       const [filterProject, setFilterProject] = useState('All');
       const [filterStage, setFilterStage] = useState('All');
@@ -153,12 +148,7 @@
       const [filterResult, setFilterResult] = useState('All');
       const [filterKeeper, setFilterKeeper] = useState('All');
       const [filterStatus, setFilterStatus] = useState('All');
-
-      const [editingRecord, setEditingRecord] = useState(null);
-      const [editingSample, setEditingSample] = useState(null);
-      const [editingConfig, setEditingConfig] = useState(null);
-      const [editingReadiness, setEditingReadiness] = useState(null);
-      const [editingDocument, setEditingDocument] = useState(null);
+      const [searchTerm, setSearchTerm] = useState('');
 
       const resetFilters = () => {
         setFilterProject('All'); setFilterStage('All'); setFilterBuild('All');
@@ -269,173 +259,153 @@
           setActiveTab('records');
         } catch (err) { console.warn('Directory selection cancelled'); }
       };
-       const filteredRecords = records.filter(r => {
-         if (filterProject !== 'All' && r.Project !== filterProject) return false;
-         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
-         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
-         if (filterConfig !== 'All' && r.Config !== filterConfig) return false;
-         if (filterResult !== 'All' && r.Result !== filterResult) return false;
-         return true;
-      });
-      const filteredSamples = samples.filter(r => {
-         if (filterProject !== 'All' && r.Project !== filterProject) return false;
-         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
-         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
-         if (filterConfig !== 'All' && r.Config !== filterConfig) return false;
-         if (filterKeeper !== 'All' && r.Keeper !== filterKeeper) return false;
-         return true;
-      });
-      const filteredConfigs = configsList.filter(r => {
-         if (filterProject !== 'All' && r.Project !== filterProject) return false;
-         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
-         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
-         return true;
-      });
-      const filteredReadiness = readinessItems.filter(r => {
-         if (filterProject !== 'All' && r.Project !== filterProject) return false;
-         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
-         if (filterStatus !== 'All' && r.Status !== filterStatus) return false;
-         return true;
-      });
-      const filteredDocuments = documents.filter(r => {
-         if (filterProject !== 'All' && r.Project !== filterProject) return false;
-         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
-         return true;
-      });
 
-      const handleUpdate = async (type, item) => {
-        let payload = {};
-        const updateList = (list, setFunc, key) => {
-          const exists = list.some(x => x.id === item.id);
-          const n = exists ? list.map(x => x.id === item.id ? item : x) : [...list, item];
-          setFunc(n);
-          payload[key] = n;
-        };
-
-        if (type === 'record') updateList(records, setRecords, 'records');
-        else if (type === 'sample') updateList(samples, setSamples, 'samples');
-        else if (type === 'config') updateList(configsList, setConfigsList, 'configsList');
-        else if (type === 'readiness') updateList(readinessItems, setReadinessItems, 'readinessItems');
-        else if (type === 'document') updateList(documents, setDocuments, 'documents');
-
-        await saveToExcel(payload);
-        setEditingRecord(null); setEditingSample(null); setEditingConfig(null); setEditingReadiness(null); setEditingDocument(null);
+      const deleteItem = (id, listKey) => {
+         if (!window.confirm('Delete this item?')) return;
+         const sets = { records, samples, configsList, readinessItems, documents };
+         const setters = { records: setRecords, samples: setSamples, configsList: setConfigsList, readinessItems: setReadinessItems, documents: setDocuments };
+         const newList = sets[listKey].filter(x => x.id !== id);
+         setters[listKey](newList);
+         saveToExcel({ [listKey]: newList });
       };
 
-      const deleteItem = async (id, type) => {
-        if (!window.confirm('Delete this item?')) return;
-        let payload = {};
-        if (type === 'records') { const n = records.filter(x => x.id !== id); setRecords(n); payload.records = n; }
-        else if (type === 'samples') { const n = samples.filter(x => x.id !== id); setSamples(n); payload.samples = n; }
-        else if (type === 'configsList') { const n = configsList.filter(x => x.id !== id); setConfigsList(n); payload.configsList = n; }
-        else if (type === 'readinessItems') { const n = readinessItems.filter(x => x.id !== id); setReadinessItems(n); payload.readinessItems = n; }
-        else if (type === 'documents') { const n = documents.filter(x => x.id !== id); setDocuments(n); payload.documents = n; }
-        await saveToExcel(payload);
+      const handleUpdate = (item, listKey, setter) => {
+         const newList = [...(listKey === 'records' ? records : listKey === 'samples' ? samples : listKey === 'configsList' ? configsList : listKey === 'readinessItems' ? readinessItems : documents)];
+         const idx = newList.findIndex(x => x.id === item.id);
+         if (idx > -1) newList[idx] = item; else newList.unshift(item);
+         setter(newList);
+         saveToExcel({ [listKey]: newList });
       };
+
+      const filteredRecords = records.filter(r => (filterProject==='All' || r.Project===filterProject) && (filterStage==='All' || r.Stage===filterStage) && (filterConfig==='All' || r.Config===filterConfig) && (filterResult==='All' || r.Result===filterResult) && (searchTerm==='' || JSON.stringify(r).toLowerCase().includes(searchTerm.toLowerCase())));
+      const filteredSamples = samples.filter(r => (filterProject==='All' || r.Project===filterProject) && (filterStage==='All' || r.Stage===filterStage) && (filterKeeper==='All' || r.Keeper===filterKeeper) && (filterConfig==='All' || r.Config===filterConfig) && (searchTerm==='' || JSON.stringify(r).toLowerCase().includes(searchTerm.toLowerCase())));
+      const filteredReadiness = readinessItems.filter(r => (filterProject==='All' || r.Project===filterProject) && (filterStage==='All' || r.Stage===filterStage) && (filterStatus==='All' || r.Status===filterStatus));
+      const filteredDocuments = documents.filter(r => (filterProject==='All' || r.Project===filterProject) && (filterStage==='All' || r.Stage===filterStage));
+
+      const [editingRecord, setEditingRecord] = useState(null);
+      const [editingSample, setEditingSample] = useState(null);
+      const [editingConfig, setEditingConfig] = useState(null);
+      const [editingReadiness, setEditingReadiness] = useState(null);
+      const [editingDocument, setEditingDocument] = useState(null);
 
       return (
-        <div className="min-h-screen bg-[#f1f5f9] flex flex-col md:flex-row font-sans text-slate-900">
-          <datalist id="stage-options">{STAGE_SUGGESTIONS.map(o => <option key={o} value={o} />)}</datalist>
-
-          <nav className={`h-screen bg-slate-900 text-white flex flex-col shadow-2xl transition-all ${isSidebarOpen ? 'w-72' : 'w-20'}`}>
-            <div className="p-6 flex items-center justify-between border-b border-slate-800">
-              {isSidebarOpen ? <div className="flex flex-col"><div className="flex items-center gap-3 text-indigo-500 font-black text-xl">REL PORTAL</div><div className="text-xs text-slate-400 font-medium tracking-widest mt-1">BY ESMOND</div></div> : <Lock className="mx-auto text-indigo-500" />}
-              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-slate-800 rounded">{isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}</button>
+        <div className="flex h-screen overflow-hidden bg-slate-50 font-sans antialiased text-slate-900 border-indigo-100">
+          <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-50">
+            <div className="p-6 border-b border-slate-100 bg-white">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-indigo-200 shadow-lg"><Layers size={22}/></div>
+                 <div className="flex flex-col">
+                    <span className="text-xs font-black text-slate-400 tracking-[0.2em]">PORTAL</span>
+                    <span className="text-xl font-black text-indigo-900 leading-tight">REL PORTAL</span>
+                 </div>
+              </div>
             </div>
-            <div className="flex-1 mt-6 px-4 space-y-1 overflow-y-auto">
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
               {[
-                { id: 'records', icon: Table, zh: '記錄蝝?? },
-                { id: 'tracking', icon: Box, zh: '璅?餈質馱' },
-                { id: 'config_recipes', icon: ClipboardList, zh: '?蔭閬' },
-                { id: 'readiness', icon: CheckCircle, zh: '皞???? },
-                { id: 'documents', icon: FileText, zh: '?辣蝞∠?' },
-                { id: 'stats', icon: PieChart, zh: '蝬?蝯梯?' },
-                { id: 'inventory', icon: Package, zh: '璅?摨怠?' },
-                { id: 'settings', icon: Settings, zh: '蝟餌絞閮剖?' }
-              ].map(tab => {
-                const Icon = tab.icon;
-                return (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${activeTab === tab.id ? 'bg-indigo-600 shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}>
-                    <Icon size={20}/>
-                    {isSidebarOpen && <SidebarLabel en={tab.id.replace('_', ' ')} zh={tab.zh} />}
-                  </button>
-                )
-              })}
+                { id: 'records', zh: '實驗記錄', en: 'RECORDS', icon: ClipboardList, color: 'indigo' },
+                { id: 'tracking', zh: '樣品追蹤', en: 'TRACKING', icon: Truck, color: 'indigo' },
+                { id: 'config', zh: '機台配置', en: 'CONFIG', icon: Box, color: 'indigo' },
+                { id: 'readiness', zh: '物料準備', en: 'READINESS', icon: Package, color: 'indigo' },
+                { id: 'documents', zh: '文件中心', en: 'DOCUMENTS', icon: FileText, color: 'indigo' },
+                { id: 'stats', zh: '綜合統計', en: 'STATS', icon: PieChart, color: 'indigo' },
+                { id: 'inventory', zh: '庫存儀表', en: 'INVENTORY', icon: LayoutList, color: 'indigo' }
+              ].map(tab => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full group flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 scale-[1.02]' : 'text-slate-500 hover:bg-slate-50 hover:text-indigo-600'}`}>
+                  <tab.icon size={22} className={activeTab === tab.id ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600'} />
+                  <SidebarLabel en={tab.en} zh={tab.zh} />
+                </button>
+              ))}
+            </nav>
+            <div className="p-4 border-t border-slate-100 space-y-2">
+               <button onClick={() => setIsAdmin(!isAdmin)} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${isAdmin ? 'bg-indigo-50 text-indigo-700' : 'text-slate-400 hover:bg-slate-50'}`}><Lock size={16}/> <span className="text-xs font-bold uppercase tracking-wider">{isAdmin ? 'Admin: Active' : 'Admin: Restricted'}</span></button>
+               <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-400 hover:bg-slate-50'}`}><Settings size={16}/> <span className="text-xs font-bold uppercase tracking-wider text-left">Settings / 系統設定</span></button>
             </div>
-            <div className="p-4 border-t border-slate-800 flex flex-col gap-2">
-               <div className={`text-xs ${dirHandle ? 'text-emerald-400' : 'text-rose-400'} flex items-center gap-2 truncate`}><FolderSearch size={14} /> {dirHandle ? dirHandle.name : 'No Folder Connected'}</div>
-               <button onClick={() => setIsAdmin(!isAdmin)} className="w-full py-3 rounded-xl bg-slate-700 hover:bg-indigo-500 transition-colors text-xs font-black uppercase shadow-lg">{isAdmin ? 'Readonly Mode' : 'Admin Mode'}</button>
-            </div>
-          </nav>
+          </aside>
 
-          <main className="flex-1 flex flex-col bg-slate-50">
-            <header className="px-8 py-6 bg-white border-b flex justify-between items-center">
-              <div><h2 className="text-2xl font-black uppercase">{activeTab.replace('_', ' ')}</h2><p className="text-xs text-indigo-600 font-bold tracking-widest">{message || 'LOCAL-FIRST ARCHITECTURE'}</p></div>
-              <div className="flex gap-3">
-                 <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/><input onChange={e=>setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 bg-slate-100 rounded-xl outline-none w-64" placeholder="Quick search..."/></div>
-                 {dirHandle && <button onClick={()=>loadAndCleanupExcelData(dirHandle, retentionDays)} className="p-2 border rounded-xl hover:bg-slate-50 relative group"><RefreshCw size={20}/></button>}
+          <main className="flex-1 flex flex-col relative bg-white overflow-hidden overflow-y-auto">
+            <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-40">
+              <div className="flex items-center gap-4">
+                 <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">{activeTab}</h2>
+                 <div className="h-4 w-[1px] bg-slate-200"></div>
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{message}</span>
+              </div>
+              <div className="relative">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
+                 <input type="text" placeholder="Quick Search..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} className="bg-slate-100 border-none rounded-2xl py-2 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-indigo-500 transition-all font-medium" />
               </div>
             </header>
 
-            <div className="space-y-6">
-               <div className="p-8 space-y-6">
-              {!dirHandle && activeTab !== 'settings' ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                   <AlertCircle size={48} className="mb-4 text-slate-300"/>
-                   <h3 className="text-xl font-bold mb-2">Folder Not Connected</h3>
-                   <p className="mb-4 text-sm">Please go to System Settings to select a local folder for Excel data storage.</p>
-                   <button onClick={()=>setActiveTab('settings')} className="px-6 py-2 bg-indigo-600 text-white rounded-full font-bold">Go to Settings</button>
-                </div>
-              ) : (
-                <>
+            <section className="flex-1 p-8 space-y-6">
+                {!dirHandle && activeTab !== 'settings' && (
+                  <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
+                    <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center text-indigo-600 shadow-inner"><FolderLock size={40}/></div>
+                    <div className="space-y-2">
+                       <h3 className="text-2xl font-black text-slate-800">No Project Connected</h3>
+                       <p className="text-slate-400 max-w-sm mx-auto font-medium leading-relaxed">Please connect to a project folder in the settings to start managing records and tracking samples.</p>
+                    </div>
+                    <button onClick={() => setActiveTab('settings')} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-slate-800 transition-all flex items-center gap-2">Go to Settings <ChevronRight size={18}/></button>
+                  </div>
+                )}
+
                 {activeTab === 'settings' && (
-                  <div className="max-w-2xl bg-white p-8 rounded-3xl shadow-sm border">
-                     <h3 className="text-lg font-black uppercase border-b pb-4 mb-6"><Settings className="inline mr-2"/> Settings & Local Connection</h3>
-                     <div className="space-y-6">
-                        <div>
-                           <label className="block text-sm font-bold text-slate-500 mb-2">Local Master Folder</label>
-                           <div className="flex items-center gap-4">
-                             <div className="flex-1 p-3 bg-slate-100 rounded-xl font-mono text-sm border flex items-center gap-2">{dirHandle ? <React.Fragment><FolderLock className="text-emerald-500"/> {dirHandle.name}</React.Fragment> : <React.Fragment><AlertCircle className="text-rose-500"/> Not Connected</React.Fragment>}</div>
-                             <button onClick={connectDirectory} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl border border-indigo-700">{dirHandle ? 'Change Folder' : 'Connect Folder'}</button>
-                           </div>
+                  <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                     <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-100/50 space-y-8">
+                        <div className="flex flex-col gap-2">
+                           <h2 className="text-3xl font-black text-slate-900 tracking-tight">System Configuration</h2>
+                           <p className="text-slate-400 font-medium">Manage your local storage, project connections, and data retention policies.</p>
                         </div>
-                        <div>
-                           <label className="block text-sm font-bold text-slate-500 mb-2">Excel Retention Days</label>
-                           <input type="number" min="1" max="365" value={retentionDays} onChange={e=>setRetentionDays(parseInt(e.target.value,10))} className="w-full p-3 border rounded-xl bg-slate-50"/>
+                        <div className="grid gap-6">
+                           <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 flex items-center justify-between">
+                              <div className="flex gap-4 items-center">
+                                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-indigo-600"><FolderSearch size={24}/></div>
+                                 <div className="flex flex-col">
+                                    <span className="text-sm font-black text-slate-800 uppercase tracking-wide">Project Connection / 專案連線</span>
+                                    <span className="text-xs font-semibold text-slate-400">{dirHandle ? `Connected: ${dirHandle.name}` : 'No folder selected'}</span>
+                                 </div>
+                              </div>
+                              <button onClick={connectDirectory} className="bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white px-6 py-2 rounded-xl font-bold transition-all shadow-sm">Connect Folder</button>
+                           </div>
+                           <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 space-y-4">
+                              <div className="flex gap-4 items-center">
+                                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-indigo-600"><RefreshCw size={24}/></div>
+                                 <div className="flex flex-col">
+                                    <span className="text-sm font-black text-slate-800 uppercase tracking-wide">Auto Backup Retention / 自動備份清理</span>
+                                    <span className="text-xs font-semibold text-slate-400">Specify how many days to keep "HQA_Master_..." files.</span>
+                                 </div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                 <input type="range" min="1" max="90" value={retentionDays} onChange={e=>setRetentionDays(parseInt(e.target.value))} className="flex-1 accent-indigo-600" />
+                                 <span className="bg-indigo-600 text-white px-4 py-1 rounded-full font-black text-sm">{retentionDays} Days</span>
+                              </div>
+                           </div>
                         </div>
                      </div>
                   </div>
                 )}
-                 {activeTab === 'records' && (
+
+                {activeTab === 'records' && (
                   <div className="space-y-6">
-                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
-                        <div className="flex gap-4 items-center">
-                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(records).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(records).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(records).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(records).configs.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterResult} onChange={e=>setFilterResult(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Results</option>{[...new Set(records.map(r=>r.Result).filter(Boolean))].map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex flex-wrap gap-4 items-center">
+                           <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(records).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(records).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(records).configs.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterResult} onChange={e=>setFilterResult(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Results</option>{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select>
+                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
                         </div>
                         {isAdmin && <button onClick={() => setEditingRecord({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Record</button>}
                      </div>
-                     <div className="bg-white rounded-3xl shadow-sm border">
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?挾</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / ?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / ?蔭</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 憿</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/6">Test item / 皜祈岫?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Q'ty / ?賊?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Start / ??</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">End / 蝯?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Result / 蝯?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Report / ?勗?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / ?酉</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action</th>}
+                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Result / 結果</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Date / 日期</th>
+                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -443,16 +413,10 @@
                                <tr key={r.id} className="hover:bg-slate-50 transition-colors">
                                  <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
                                  <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
-                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Build||'')}</td>
-                                 <td className="p-3 font-mono text-slate-500 border-b border-slate-100">{String(r.Config||'')}</td>
-                                 <td className="p-3 text-indigo-600 font-bold border-b border-slate-100">{String(r.Category||'')}</td>
-                                 <td className="p-3 border-b border-slate-100">{String(r['Test item']||'')}</td>
-                                 <td className="p-3 border-b border-slate-100">{String(r["Q'ty"]||'')}</td>
-                                 <td className="p-3 text-slate-500 font-mono border-b border-slate-100">{String(r.Start||'').replace('T00:00:00.000Z','')}</td>
-                                 <td className="p-3 text-slate-500 font-mono border-b border-slate-100">{String(r.End||'').replace('T00:00:00.000Z','')}</td>
-                                 <td className="p-3 text-center border-b border-slate-100"><span className={`px-3 py-1 rounded-full border text-[10px] font-bold tracking-widest uppercase ${getResultStyle(r.Result)}`}>{String(r.Result||'')}</span></td>
-                                 <td className="p-3 justify-center flex border-b border-slate-100">{r.Report ? <a href={r.Report} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Link</a> : ''}</td>
-                                 <td className="p-3 text-slate-400 border-b border-slate-100">{String(r.Remark||'')}</td>
+                                 <td className="p-3 font-bold text-indigo-600 uppercase border-b border-slate-100">{String(r.Category||'')}</td>
+                                 <td className="p-3 font-mono border-b border-slate-100">{String(r.Config||'')}</td>
+                                 <td className="p-3 border-b border-slate-100"><span className={`px-3 py-1 rounded-full font-bold uppercase tracking-widest text-[10px] ${getResultStyle(r.Result)}`}>{String(r.Result||'')}</span></td>
+                                 <td className="p-3 text-slate-400 border-b border-slate-100">{String(r.Date||'').replace('T00:00:00.000Z','')}</td>
                                  {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
                                    <div className="flex justify-center gap-2">
                                      <button onClick={()=>setEditingRecord(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
@@ -461,7 +425,7 @@
                                  </td>}
                                </tr>
                              ))}
-                             {filteredRecords.length === 0 && <tr><td colSpan="13" className="text-center p-8 text-slate-400">No records found.</td></tr>}
+                             {filteredRecords.length === 0 && <tr><td colSpan="7" className="text-center p-8 text-slate-400 font-medium">No records matching your search.</td></tr>}
                           </tbody>
                         </table>
                      </div>
@@ -470,51 +434,42 @@
 
                 {activeTab === 'tracking' && (
                   <div className="space-y-6">
-                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
-                        <div className="flex gap-4 items-center">
-                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(samples).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(samples).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(samples).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(samples).configs.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterKeeper} onChange={e=>setFilterKeeper(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Keepers</option>{getDynamicOptions(samples).keepers.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex flex-wrap gap-4 items-center">
+                           <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(samples).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(samples).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(samples).configs.map(c=><option key={c} value={c}>{c}</option>)}</select>
+                           <select value={filterKeeper} onChange={e=>setFilterKeeper(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Keepers / 全部位子</option>{getDynamicOptions(samples).keepers.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
                         </div>
                         {isAdmin && <button onClick={() => setEditingSample({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Sample</button>}
                      </div>
-                     <div className="bg-white rounded-3xl shadow-sm border">
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 text-left">Project / 專案</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?挾</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / ?</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / ?蔭</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">DUT ID / 璅??蝺刻?</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">SN / 摨?</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 靽恣鈭?/th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 1 / ? 1</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 2 / ? 2</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Failure / 銝?曇情</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">FA Report / FA ?勗?</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5 text-left">Remark / ?酉</th>
-                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ??</th>}
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Sample ID / 樣品編號</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Project / 專案</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / 批次</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 位子</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Units / 數量</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Remark / 備註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
                              {filteredSamples.map(r => (
                                <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                 <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
+                                 <td className="p-3 font-mono font-bold text-indigo-600 break-all sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r['Sample ID']||'')}</td>
+                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Project||'')}</td>
                                  <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
-                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Build||'')}</td>
-                                 <td className="p-3 font-mono text-slate-500 border-b border-slate-100">{String(r.Config||'')}</td>
-                                 <td className="p-3 font-mono text-slate-600 border-b border-slate-100">{String(r['DUT ID']||'')}</td>
-                                 <td className="p-3 font-mono text-slate-600 border-b border-slate-100">{String(r.SN||'')}</td>
-                                 <td className="p-3 font-bold text-indigo-600 border-b border-slate-100">{String(r.Keeper||'')}</td>
-                                 <td className="p-3 text-slate-600 border-b border-slate-100">{String(r.item1||'')}</td>
-                                 <td className="p-3 text-slate-600 border-b border-slate-100">{String(r.item2||'')}</td>
-                                 <td className="p-3 text-rose-500 font-bold border-b border-slate-100">{String(r.Failure||'')}</td>
-                                 <td className="p-3 border-b border-slate-100">{r['FA report'] ? <a href={r['FA report']} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Link</a> : ''}</td>
-                                 <td className="p-3 text-slate-400 border-b border-slate-100">{String(r.Remark||'')}</td>
+                                 <td className="p-3 font-bold uppercase border-b border-slate-100">{String(r.Build||'')}</td>
+                                 <td className="p-3 font-mono border-b border-slate-100">{String(r.Config||'')}</td>
+                                 <td className="p-3 font-bold text-slate-700 border-b border-slate-100">{String(r.Keeper||'')}</td>
+                                 <td className="p-3 font-bold text-slate-700 border-b border-slate-100">{String(r.Units||'1')}</td>
+                                 <td className="p-3 text-slate-400 break-words leading-tight max-w-[150px] border-b border-slate-100">{String(r.Remark||'')}</td>
                                  {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
                                    <div className="flex justify-center gap-2">
                                      <button onClick={()=>setEditingSample(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
@@ -523,47 +478,35 @@
                                  </td>}
                                </tr>
                              ))}
-                             {filteredSamples.length === 0 && <tr><td colSpan="13" className="text-center p-8 text-slate-400">No samples found.</td></tr>}
+                             {filteredSamples.length === 0 && <tr><td colSpan="9" className="text-center p-8 text-slate-400 font-medium">No sample tracking data found.</td></tr>}
                           </tbody>
                         </table>
                      </div>
                   </div>
                 )}
-                 {activeTab === 'config_recipes' && (
+
+                {activeTab === 'config' && (
                   <div className="space-y-6">
-                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
-                        <div className="flex gap-4 items-center">
-                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(configsList).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(configsList).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(configsList).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
-                        </div>
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between">
+                        <h3 className="font-black text-slate-800 uppercase tracking-widest text-sm underline decoration-indigo-200 underline-offset-4">Config Recipes / 機台配置清單</h3>
                         {isAdmin && <button onClick={() => setEditingConfig({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Config</button>}
                      </div>
-                     <div className="bg-white rounded-3xl shadow-sm border">
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 w-[10%]">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Stage / ?挾</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Build / ?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Config / ?蔭</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Size / 撠箏站</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[25%]">Description / ?膩</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[20%]">Remark / ?酉</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ??</th>}
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config Name / 配置名稱</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[50%]">Description / 詳細說明</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
-                             {filteredConfigs.map(r => (
+                             {configsList.map(r => (
                                <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                 <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
-                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
-                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Build||'')}</td>
-                                 <td className="p-3 font-mono text-indigo-600 font-bold border-b border-slate-100">{String(r.Config||'')}</td>
-                                 <td className="p-3 font-mono text-slate-600 border-b border-slate-100">{String(r.Size||'')}</td>
-                                 <td className="p-3 text-slate-700 border-b border-slate-100">{String(r.Description||'')}</td>
-                                 <td className="p-3 text-slate-400 border-b border-slate-100">{String(r.Remark||'')}</td>
+                                 <td className="p-3 sticky left-0 bg-white z-10 border-b border-r border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-3 font-mono font-bold text-indigo-600 border-b border-slate-100">{String(r.Config||'')}</td>
+                                 <td className="p-3 text-slate-500 break-words leading-relaxed border-b border-slate-100">{String(r.Description||'')}</td>
                                  {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
                                    <div className="flex justify-center gap-2">
                                      <button onClick={()=>setEditingConfig(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
@@ -572,7 +515,7 @@
                                  </td>}
                                </tr>
                              ))}
-                             {filteredConfigs.length === 0 && <tr><td colSpan="8" className="text-center p-8 text-slate-400">No configs found.</td></tr>}
+                             {configsList.length === 0 && <tr><td colSpan="4" className="text-center p-8 text-slate-400 font-medium">No configurations defined.</td></tr>}
                           </tbody>
                         </table>
                      </div>
@@ -581,29 +524,29 @@
 
                 {activeTab === 'readiness' && (
                   <div className="space-y-6">
-                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
-                        <div className="flex gap-4 items-center">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex flex-wrap gap-4 items-center">
                            <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(readinessItems).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
                            <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(readinessItems).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Status</option>{[...new Set(readinessItems.map(r=>r.Status).filter(Boolean))].map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Status / 全部狀態</option>{[...new Set(readinessItems.map(i=>String(i.Status).toUpperCase()))].map(p=><option key={p} value={p}>{p}</option>)}</select>
                            <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
                         </div>
-                        {isAdmin && <button onClick={() => setEditingReadiness({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Item</button>}
+                        {isAdmin && <button onClick={() => setEditingReadiness({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Readiness</button>}
                      </div>
-                     <div className="bg-white rounded-3xl shadow-sm border">
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?挾</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 憿</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Item / ?活</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Numbers / ?賊?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">ETA / ???圈?</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Status / ???/th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">PO / ?∟頃??/th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / ?酉</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ??</th>}
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item / 項目</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Numbers / 數量</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">ETA / 預計抵達</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Status / 狀態</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">PO / 單號</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Remark / 備註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -615,7 +558,13 @@
                                  <td className="p-3 font-bold text-slate-700 break-words leading-tight border-b border-slate-100">{String(r.Item||'')}</td>
                                  <td className="p-3 font-mono border-b border-slate-100">{String(r.Numbers||'')}</td>
                                  <td className="p-3 font-mono text-slate-500 border-b border-slate-100">{String(r.ETA||'').replace('T00:00:00.000Z','')}</td>
-                                 <td className="p-3 text-center border-b border-slate-100"><span className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${String(r.Status||'').toUpperCase()==='ARRIVED'?'bg-green-100 text-green-700':String(r.Status||'').toUpperCase()==='PURCHASING'?'bg-yellow-100 text-yellow-700':'bg-slate-100 text-slate-600'}`}>{String(r.Status||'').toUpperCase()}</span></td>
+                                 <td className="p-3 text-center border-b border-slate-100">
+                                   <span className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${
+                                     String(r.Status||'').toUpperCase()==='ARRIVED'?'bg-emerald-100 text-emerald-700':
+                                     String(r.Status||'').toUpperCase()==='PURCHASING'?'bg-yellow-100 text-yellow-700':
+                                     'bg-slate-100 text-slate-500'
+                                   }`}>{String(r.Status||'').toUpperCase()}</span>
+                                 </td>
                                  <td className="p-3 font-mono text-slate-400 border-b border-slate-100">{String(r.PO||'')}</td>
                                  <td className="p-3 text-slate-400 break-words leading-tight border-b border-slate-100">{String(r.Remark||'')}</td>
                                  {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
@@ -643,27 +592,27 @@
                         </div>
                         {isAdmin && <button onClick={() => setEditingDocument({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Document</button>}
                      </div>
-                     <div className="bg-white rounded-3xl shadow-sm border">
+                     <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?挾</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Document Name / ?辣?迂</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Link / ???</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Remark / ?酉</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ??</th>}
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Document Name / 文件名稱</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Link / 連結</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Remark / 備註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
                              {filteredDocuments.map(r => (
                                <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Project||'')}</td>
+                                 <td className="p-3 font-bold border-b border-slate-100 sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
                                  <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
                                  <td className="p-3 font-bold text-indigo-600 break-words leading-tight border-b border-slate-100">{String(r['Document name']||'')}</td>
                                  <td className="p-3 border-b border-slate-100">{r.Link ? <a href={r.Link} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Link</a> : ''}</td>
                                  <td className="p-3 text-slate-400 break-words leading-tight border-b border-slate-100">{String(r.Remark||'')}</td>
-                                 {isAdmin && <td className="p-3 text-center border-b border-slate-100">
+                                 {isAdmin && <td className="p-3 text-center border-b border-slate-100 sticky right-0 bg-white z-10 border-b border-l border-slate-100">
                                    <div className="flex justify-center gap-2">
                                      <button onClick={()=>setEditingDocument(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
                                      <button onClick={()=>deleteItem(r.id, 'documents')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
@@ -677,73 +626,74 @@
                      </div>
                   </div>
                 )}
-                 {activeTab === 'stats' && (
-                  <div className="space-y-8">
-                    <div className="flex flex-wrap items-center gap-4 bg-white p-6 rounded-3xl border shadow-sm mb-6">
-                       <div className="flex bg-slate-200 p-1 rounded-xl w-64 shadow-inner mr-4">
-                          <button onClick={()=>setStatsCalcMode('overall')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${statsCalcMode === 'overall' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}><LayoutList size={14} className="inline mr-2"/>Overall Sum</button>
-                          <button onClick={()=>setStatsCalcMode('category')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${statsCalcMode === 'category' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}><Layers size={14} className="inline mr-2"/>By Category</button>
-                       </div>
-                       <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filter:</span>
-                          {Object.entries({ Project: filterProject, Stage: filterStage, Build: filterBuild }).map(([dim, val]) => (
-                             <select key={dim} value={val} onChange={e => { if(dim==='Project')setFilterProject(e.target.value); if(dim==='Stage')setFilterStage(e.target.value); if(dim==='Build')setFilterBuild(e.target.value); }} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold text-slate-600">
-                                <option value="All">{dim}: All</option>
-                                {getDynamicOptions(records)[dim.toLowerCase()+'s']?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                             </select>
-                          ))}
-                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-slate-50 rounded-xl transition-colors ml-2" title="Reset Filters"><RotateCcw size={20}/></button>
-                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {[...new Set(filteredRecords.map(r => `${r.Project} - ${r.Stage} - ${r.Build}`))].filter(Boolean).sort().map(key => {
-                        const projectRecords = filteredRecords.filter(r => `${r.Project} - ${r.Stage} - ${r.Build}` === key);
-                        const total = projectRecords.length;
-                        const totalForCalc = projectRecords.filter(r => r.Result !== 'N/A').length;
-                        if (total === 0) return null;
-                        const categories = [...new Set(projectRecords.map(r => r.Category))].filter(Boolean);
-                        
-                        return (
-                          <div key={key} className="bg-white rounded-[2.5rem] shadow-xl border overflow-hidden flex flex-col hover:shadow-2xl transition-all border-slate-200">
-                            {/* Dark Header */}
-                            <div className="bg-[#0f172a] p-8 text-white relative">
-                               <div className="flex justify-between items-start mb-6">
-                                  <div>
-                                     <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1 block">Insight</span>
-                                     <h4 className="text-2xl font-black tracking-tight">{key}</h4>
-                                  </div>
-                                  <div className="flex gap-2">
-                                     <button onClick={()=>setStatsCalcMode('category')} className={`p-2 rounded-xl transition-all ${statsCalcMode === 'category' ? 'bg-indigo-600 shadow-lg text-white' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}><Layers size={18}/></button>
-                                     <button onClick={()=>setStatsCalcMode('overall')} className={`p-2 rounded-xl transition-all ${statsCalcMode === 'overall' ? 'bg-indigo-600 shadow-lg text-white' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}><LayoutList size={18}/></button>
-                                  </div>
-                               </div>
-                               <div className="flex items-baseline gap-2">
-                                  <span className="text-5xl font-black text-indigo-400 leading-none">{total}</span>
-                                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Items</span>
-                               </div>
-                            </div>
+                {activeTab === 'stats' && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/30 space-y-8">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Global Progress / 總體進度統計</h3>
+                            <PieChart className="text-indigo-600" size={24}/>
+                        </div>
+                        <div className="p-10 bg-slate-50 rounded-[2rem] text-center space-y-2 border border-slate-100 relative overflow-hidden">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-xl"></div>
+                           <span className="text-6xl font-black text-slate-900 tracking-tighter">{records.length}</span>
+                           <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest">Total Test Records / 總測試件數</span>
+                        </div>
+                        <div className="space-y-6">
+                           {(() => {
+                              const total = records.length;
+                              const totalForCalc = records.filter(r => r.Result !== 'N/A').length;
+                              const statusCounts = RESULTS.map(status => ({
+                                 status,
+                                 count: records.filter(r => r.Result === status).length,
+                                 color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : status === 'N/A' ? 'slate' : 'slate'
+                              })).filter(s => s.count > 0);
 
-                            <div className="p-8 flex-1 space-y-8">
-                               {statsCalcMode === 'category' ? (
+                              return statusCounts.map(s => {
+                                 const isNA = s.status === 'N/A';
+                                 const pct = (!isNA && totalForCalc > 0) ? ((s.count / totalForCalc) * 100).toFixed(1) : 0;
+                                 return (
+                                    <div key={s.status} className="space-y-2">
+                                       <div className="flex justify-between text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                                          <span>{s.status}</span>
+                                          <span className={`text-${s.color}-600 text-lg`}>{s.count} {isNA ? '(-%)' : `(${pct}%)`}</span>
+                                       </div>
+                                       <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                          <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${s.color}-500 h-full rounded-full transition-all duration-1000`} />
+                                       </div>
+                                    </div>
+                                 );
+                              });
+                           })()}
+                        </div>
+                     </div>
+
+                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/30 space-y-8">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Category Deep Dive / 分類深度統計</h3>
+                            <ChevronRight className="text-slate-300" size={24}/>
+                        </div>
+                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                           {(() => {
+                              const categories = [...new Set(records.map(r => r.Category))];
+                              return categories.length === 0 ? <p className="text-center p-12 text-slate-400">No category data to display.</p> :
                                  categories.map(cat => {
-                                    const catRecs = projectRecords.filter(r => r.Category === cat);
+                                    const catRecs = records.filter(r => r.Category === cat);
                                     const totalCat = catRecs.length;
                                     const totalCatForCalc = catRecs.filter(r => r.Result !== 'N/A').length;
                                     
                                     const statusCounts = RESULTS.map(status => ({
                                        status,
                                        count: catRecs.filter(r => r.Result === status).length,
-                                       color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
+                                       color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : 'slate'
                                     })).filter(s => s.count > 0);
 
                                     return (
-                                       <div key={cat} className="space-y-4">
-                                          <div className="flex justify-between items-center border-b pb-2">
-                                             <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide">{cat}</h5>
-                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{totalCat} Items</span>
+                                       <div key={cat} className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 space-y-4 hover:border-indigo-100 hover:bg-white transition-all group">
+                                          <div className="flex justify-between items-center">
+                                             <span className="font-black text-slate-700 uppercase text-xs tracking-tight group-hover:text-indigo-600 transition-colors">{cat}</span>
+                                             <span className="text-[10px] font-bold bg-white px-3 py-1 rounded-full text-slate-400 border border-slate-100">{totalCat} Total</span>
                                           </div>
-                                          
                                           <div className="space-y-4 pt-2">
                                              {statusCounts.map(s => {
                                                 const isNA = s.status === 'N/A';
@@ -763,245 +713,188 @@
                                           </div>
                                        </div>
                                     );
-                                 })
-                               ) : (
-                                 <div className="space-y-6">
-                                    <div className="flex justify-between items-center border-b pb-2">
-                                       <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide">Total Summary</h5>
-                                    </div>
-                                    <div className="space-y-6 pt-4">
-                                       {(() => {
-                                          const statusCounts = RESULTS.map(status => ({
-                                             status,
-                                             count: projectRecords.filter(r => r.Result === status).length,
-                                             color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
-                                          })).filter(s => s.count > 0);
-
-                                          return statusCounts.map(s => {
-                                             const isNA = s.status === 'N/A';
-                                             const pct = (!isNA && totalForCalc > 0) ? ((s.count / totalForCalc) * 100).toFixed(1) : 0;
-                                             return (
-                                                <div key={s.status} className="space-y-2">
-                                                   <div className="flex justify-between text-[11px] font-black uppercase text-slate-500 tracking-wider">
-                                                      <span>{s.status}</span>
-                                                      <span className={`text-${s.color}-600 text-lg`}>{s.count} {isNA ? '(-%)' : `(${pct}%)`}</span>
-                                                   </div>
-                                                   <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                                      <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${s.color}-500 h-full rounded-full transition-all duration-1000`} />
-                                                   </div>
-                                                </div>
-                                             );
-                                          });
-                                       })()}
-                                    </div>
-                                 </div>
-                               )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                                 });
+                           })()}
+                        </div>
+                     </div>
                   </div>
                 )}
 
                 {activeTab === 'inventory' && (
-                  <div className="space-y-8">
-                    <div className="flex flex-wrap items-center gap-4 bg-white p-6 rounded-3xl border shadow-sm mb-6">
-                       <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                          <div className="flex bg-slate-200 p-1 rounded-xl flex-1 md:w-64 shadow-inner">
-                             <button onClick={()=>setInventoryGroupBy('keeper')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${inventoryGroupBy === 'keeper' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>By Keeper</button>
-                             <button onClick={()=>setInventoryGroupBy('stagebuild')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${inventoryGroupBy === 'stagebuild' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>By Stage-Build</button>
-                          </div>
-                          <div className="flex bg-indigo-50 p-1 rounded-xl flex-1 md:w-64 shadow-inner border border-indigo-100">
-                             <button onClick={()=>setInventorySubView('detail')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${inventorySubView === 'detail' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>Show Detail</button>
-                             <button onClick={()=>setInventorySubView('config')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${inventorySubView === 'config' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>By Config</button>
-                          </div>
+                  <div className="space-y-8 animate-in fade-in duration-500">
+                    <div className="flex justify-between items-center">
+                       <div className="flex items-center gap-4">
+                          <button onClick={() => setInventoryGroupBy('Keeper')} className={`px-6 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${inventoryGroupBy === 'Keeper' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:border-indigo-200'}`}>By Keeper / 按保管人</button>
+                          <button onClick={() => setInventoryGroupBy('Stage')} className={`px-6 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${inventoryGroupBy === 'Stage' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:border-indigo-200'}`}>By Stage-Build / 按階段批次</button>
                        </div>
-                       <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filter:</span>
-                          {Object.entries({ Project: filterProject, Stage: filterStage, Build: filterBuild }).map(([dim, val]) => (
-                             <select key={dim} value={val} onChange={e => { if(dim==='Project')setFilterProject(e.target.value); if(dim==='Stage')setFilterStage(e.target.value); if(dim==='Build')setFilterBuild(e.target.value); }} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold text-slate-600">
-                                <option value="All">{dim}: All</option>
-                                {getDynamicOptions(samples)[dim.toLowerCase()+'s']?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                             </select>
-                          ))}
-                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-slate-50 rounded-xl transition-colors ml-2" title="Reset Filters"><RotateCcw size={20}/></button>
+                       <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200">
+                          <button onClick={() => setInventorySubView('Detail')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inventorySubView === 'Detail' ? 'bg-slate-100 text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Show Detail</button>
+                          <button onClick={() => setInventorySubView('Config')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inventorySubView === 'Config' ? 'bg-slate-100 text-indigo-600 shadow-sm' : 'text-slate-400'}`}>By Config</button>
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {(inventoryGroupBy === 'keeper' 
-                        ? [...new Set(filteredSamples.map(s => s.Keeper))].filter(Boolean).map(key => ({ key, list: filteredSamples.filter(s => s.Keeper === key), label: 'Keeper' }))
-                        : [...new Set(filteredSamples.map(s => `${s.Project} - ${s.Stage} - ${s.Build}`))].filter(Boolean).sort().map(key => ({ key, list: filteredSamples.filter(s => `${s.Project} - ${s.Stage} - ${s.Build}` === key), label: 'Stage-Build' }))
-                      ).map(group => {
-                          if (group.list.length === 0) return null;
-                          // Aggregate the opposite dimension
-                          // Aggregate the internal dimension
-                          const otherDimensionCounts = group.list.reduce((acc, s) => {
-                             let otherKey;
-                             if (inventorySubView === 'config') {
-                                otherKey = s.Config || 'Unknown';
-                             } else {
-                                otherKey = inventoryGroupBy === 'keeper' ? `${s.Project} - ${s.Stage} - ${s.Build}` : s.Keeper;
-                             }
-                             acc[otherKey] = (acc[otherKey] || 0) + 1;
-                             return acc;
-                          }, {});
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                       {(() => {
+                          const groups = {};
+                          samples.forEach(s => {
+                             const key = inventoryGroupBy === 'Keeper' ? (s.Keeper || 'Unknown') : `${s.Stage || 'N/A'}-${s.Build || 'N/A'}`;
+                             if (!groups[key]) groups[key] = [];
+                             groups[key].push(s);
+                          });
 
-                          return (
-                            <div key={group.key} className="bg-white rounded-3xl shadow-xl border overflow-hidden flex flex-col hover:shadow-2xl transition-all">
-                              <div className="bg-[#0f172a] p-6 text-white flex items-center justify-between">
-                                 <div className="min-w-0 pr-4">
-                                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">{group.label}</span>
-                                    <h4 className="text-sm font-black break-words leading-tight">{group.key}</h4>
-                                 </div>
-                                 <div className="bg-indigo-600 px-4 py-2 rounded-2xl shrink-0">
-                                    <span className="text-xl font-black">{group.list.length}</span>
-                                    <span className="text-[9px] ml-1 uppercase font-bold opacity-60">??/span>
-                                 </div>
-                              </div>
-                              
-                              <div className="p-6 space-y-3 bg-slate-50 flex-1">
-                                 {Object.entries(otherDimensionCounts).map(([subKey, count]) => (
-                                   <div key={subKey} onClick={() => {
-                                       if (inventorySubView === 'config') { setFilterConfig(subKey); }
-                                       else if (inventoryGroupBy === 'keeper') { const [p, st, b] = subKey.split(' - '); setFilterProject(p); setFilterStage(st); setFilterBuild(b); }
-                                       else { setFilterKeeper(subKey); }
-                                       setActiveTab('tracking');
-                                   }} className="flex justify-between items-center bg-white p-4 rounded-2xl border shadow-sm group hover:border-indigo-500 transition-all cursor-pointer">
-                                      <div className="flex items-center gap-3">
-                                         <div className="w-1.5 h-10 bg-indigo-100 rounded-full group-hover:bg-indigo-600 transition-colors"></div>
-                                         <span className="text-[11px] font-black text-slate-800 break-words leading-tight max-w-[200px]">{subKey}</span>
-                                      </div>
-                                      <div className="flex flex-col items-end">
-                                         <span className="text-lg font-black text-indigo-600 leading-none">{count}</span>
-                                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Units</span>
-                                      </div>
-                                   </div>
-                                 ))}
-                              </div>
-                              
-                              <div className="px-6 py-4 bg-white border-t">
-                                 <button onClick={() => { 
-                                    setFilterConfig('All');
-                                    if (inventoryGroupBy === 'keeper') { setFilterKeeper(group.key); }
-                                    else { const [p, st, b] = group.key.split(' - '); setFilterProject(p); setFilterStage(st); setFilterBuild(b); }
-                                    setActiveTab('tracking'); 
-                                 }} className="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white transition-all rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">
-                                    Deep Track Data
-                                 </button>
-                              </div>
-                            </div>
-                          );
-                      })}
+                          return Object.entries(groups).map(([groupName, items]) => {
+                             const totalUnits = items.reduce((sum, item) => sum + parseInt(item.Units || '1'), 0);
+                             const otherDimensionCounts = items.reduce((acc, curr) => {
+                                const key = inventorySubView === 'Config' ? (curr.Config || 'No Config') : (inventoryGroupBy === 'Keeper' ? curr.Project : curr.Keeper);
+                                acc[key] = (acc[key] || 0) + parseInt(curr.Units || '1');
+                                return acc;
+                             }, {});
+
+                             return (
+                               <div key={groupName} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/20 hover:shadow-indigo-100/50 hover:border-indigo-200 transition-all group flex flex-col h-full">
+                                  <div className="flex justify-between items-start mb-6">
+                                     <div className="space-y-1">
+                                        <h4 className="text-sm font-black text-indigo-900 uppercase break-words leading-tight">{groupName}</h4>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{inventoryGroupBy === 'Keeper' ? 'PROJECT MIX' : 'BUILD STATUS'}</p>
+                                     </div>
+                                     <div className="bg-indigo-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">{totalUnits}</div>
+                                  </div>
+                                  <div className="flex-1 space-y-3">
+                                     {Object.entries(otherDimensionCounts).map(([dimension, count]) => (
+                                       <button key={dimension} onClick={() => {
+                                          resetFilters();
+                                          if (inventoryGroupBy === 'Keeper') setFilterKeeper(groupName);
+                                          else { const [s,b] = groupName.split('-'); setFilterStage(s); setFilterBuild(b); }
+                                          if (inventorySubView === 'Config') setFilterConfig(dimension);
+                                          else if (inventoryGroupBy === 'Keeper') setFilterProject(dimension);
+                                          else setFilterKeeper(dimension);
+                                          setActiveTab('tracking');
+                                       }} className="w-full flex justify-between items-center p-3 rounded-2xl bg-slate-50 hover:bg-white border border-transparent hover:border-indigo-100 hover:shadow-sm transition-all text-left">
+                                          <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight truncate mr-2">{dimension}</span>
+                                          <span className="text-[10px] font-black text-indigo-500 bg-white px-2 py-1 rounded-lg border border-slate-100 shadow-sm">{count}</span>
+                                       </button>
+                                     ))}
+                                  </div>
+                                  <button onClick={() => {
+                                     resetFilters();
+                                     if (inventoryGroupBy === 'Keeper') setFilterKeeper(groupName);
+                                     else { const [s,b] = groupName.split('-'); setFilterStage(s); setFilterBuild(b); }
+                                     setActiveTab('tracking');
+                                  }} className="mt-6 w-full py-3 rounded-2xl border-2 border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all">Deep Track Data</button>
+                               </div>
+                             );
+                          });
+                       })()}
                     </div>
                   </div>
                 )}
-                </>
-              )}
-               </div>
-            </div>
+            </section>
           </main>
 
           {editingRecord && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
-                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingRecord.Project ? 'Edit Record' : 'New Record'}</h3><button type="button" onClick={()=>setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
-                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('record', editingRecord)}} className="grid grid-cols-4 gap-6 text-[11px] font-bold">
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Project<input value={editingRecord.Project||''} onChange={e=>setEditingRecord({...editingRecord, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Stage<input list="stage-options" value={editingRecord.Stage||''} onChange={e=>setEditingRecord({...editingRecord, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Build<input value={editingRecord.Build||''} onChange={e=>setEditingRecord({...editingRecord, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Config<input value={editingRecord.Config||''} onChange={e=>setEditingRecord({...editingRecord, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Category<input value={editingRecord.Category||''} onChange={e=>setEditingRecord({...editingRecord, Category:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Test item<input value={editingRecord['Test item']||''} onChange={e=>setEditingRecord({...editingRecord, 'Test item':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Q'ty<input type="number" value={editingRecord["Q'ty"]||''} onChange={e=>setEditingRecord({...editingRecord, "Q'ty":e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Start Date<input type="date" value={editingRecord.Start||''} onChange={e=>setEditingRecord({...editingRecord, Start:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">End Date<input type="date" value={editingRecord.End||''} onChange={e=>setEditingRecord({...editingRecord, End:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Result<select value={editingRecord.Result||''} onChange={e=>setEditingRecord({...editingRecord, Result:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"><option value=""></option>{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
-                    <div className="col-span-1 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Report Link<input value={editingRecord.Report||''} onChange={e=>setEditingRecord({...editingRecord, Report:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
-                    <div className="col-span-4 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Remark<input value={editingRecord.Remark||''} onChange={e=>setEditingRecord({...editingRecord, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-4 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Record</button></div>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
+                 <div className="absolute top-0 right-0 p-6">
+                    <button onClick={()=>setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X size={24}/></button>
+                 </div>
+                 <h3 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tight">Record Editor</h3>
+                 <form onSubmit={(e)=>{e.preventDefault(); handleUpdate(editingRecord, 'records', setRecords); setEditingRecord(null);}} className="grid grid-cols-2 gap-6">
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project</label><input required value={editingRecord.Project||''} onChange={e=>setEditingRecord({...editingRecord, Project:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-sm" list="projects-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stage</label><input required value={editingRecord.Stage||''} onChange={e=>setEditingRecord({...editingRecord, Stage:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-sm" list="stages-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label><input required value={editingRecord.Category||''} onChange={e=>setEditingRecord({...editingRecord, Category:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-sm" /></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Config</label><input value={editingRecord.Config||''} onChange={e=>setEditingRecord({...editingRecord, Config:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-sm" list="configs-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Result</label><select value={editingRecord.Result||'Pass'} onChange={e=>setEditingRecord({...editingRecord, Result:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-sm leading-tight">{RESULTS.map(r=>(<option key={r} value={r}>{r}</option>))}</select></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label><input type="date" value={editingRecord.Date||''} onChange={e=>setEditingRecord({...editingRecord, Date:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-sm" /></div>
+                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase font-black tracking-widest shadow-indigo-100">Deploy Changes</button></div>
                  </form>
               </div>
             </div>
           )}
 
           {editingSample && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
-                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingSample.Project ? 'Edit Sample' : 'New Sample'}</h3><button type="button" onClick={()=>setEditingSample(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
-                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('sample', editingSample)}} className="grid grid-cols-4 gap-6 text-[11px] font-bold">
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Project<input value={editingSample.Project||''} onChange={e=>setEditingSample({...editingSample, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Stage<input value={editingSample.Stage||''} onChange={e=>setEditingSample({...editingSample, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Build<input value={editingSample.Build||''} onChange={e=>setEditingSample({...editingSample, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Config<input value={editingSample.Config||''} onChange={e=>setEditingSample({...editingSample, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DUT ID<input value={editingSample['DUT ID']||''} onChange={e=>setEditingSample({...editingSample, 'DUT ID':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">SN<input value={editingSample.SN||''} onChange={e=>setEditingSample({...editingSample, SN:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Keeper<input value={editingSample.Keeper||''} onChange={e=>setEditingSample({...editingSample, Keeper:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM1<input value={editingSample.item1||''} onChange={e=>setEditingSample({...editingSample, item1:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM2<input value={editingSample.item2||''} onChange={e=>setEditingSample({...editingSample, item2:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-rose-500 uppercase tracking-widest text-[9px]">FAILURE<input value={editingSample.Failure||''} onChange={e=>setEditingSample({...editingSample, Failure:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-rose-50 border border-rose-200 rounded-xl"/></div>
-                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">FA REPORT LINK<input value={editingSample['FA report']||''} onChange={e=>setEditingSample({...editingSample, 'FA report':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
-                    <div className="col-span-4 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingSample.Remark||''} onChange={e=>setEditingSample({...editingSample, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-4 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Sample</button></div>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
+                 <div className="absolute top-0 right-0 p-6">
+                    <button onClick={()=>setEditingSample(null)} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X size={24}/></button>
+                 </div>
+                 <h3 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tight">Sample Editor</h3>
+                 <form onSubmit={(e)=>{e.preventDefault(); handleUpdate(editingSample, 'samples', setSamples); setEditingSample(null);}} className="grid grid-cols-2 gap-6">
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sample ID</label><input required value={editingSample['Sample ID']||''} onChange={e=>setEditingSample({...editingSample, 'Sample ID':e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project</label><input required value={editingSample.Project||''} onChange={e=>setEditingSample({...editingSample, Project:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="projects-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stage</label><input required value={editingSample.Stage||''} onChange={e=>setEditingSample({...editingSample, Stage:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="stages-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Build</label><input value={editingSample.Build||''} onChange={e=>setEditingSample({...editingSample, Build:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="builds-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Config</label><input value={editingSample.Config||''} onChange={e=>setEditingSample({...editingSample, Config:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="configs-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Units</label><input type="number" value={editingSample.Units||'1'} onChange={e=>setEditingSample({...editingSample, Units:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Keeper</label><input value={editingSample.Keeper||''} onChange={e=>setEditingSample({...editingSample, Keeper:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="keepers-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Remark</label><input value={editingSample.Remark||''} onChange={e=>setEditingSample({...editingSample, Remark:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" /></div>
+                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase font-black">Save Tracking Data</button></div>
                  </form>
               </div>
             </div>
           )}
 
           {editingConfig && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-3xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
-                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingConfig.Project ? 'Edit Config' : 'New Config'}</h3><button type="button" onClick={()=>setEditingConfig(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
-                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('config', editingConfig)}} className="grid grid-cols-2 gap-6 text-[11px] font-bold">
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingConfig.Project||''} onChange={e=>setEditingConfig({...editingConfig, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingConfig.Stage||''} onChange={e=>setEditingConfig({...editingConfig, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">BUILD<input value={editingConfig.Build||''} onChange={e=>setEditingConfig({...editingConfig, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">CONFIG<input value={editingConfig.Config||''} onChange={e=>setEditingConfig({...editingConfig, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">SIZE<input value={editingConfig.Size||''} onChange={e=>setEditingConfig({...editingConfig, Size:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DESCRIPTION<input value={editingConfig.Description||''} onChange={e=>setEditingConfig({...editingConfig, Description:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingConfig.Remark||''} onChange={e=>setEditingConfig({...editingConfig, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Config</button></div>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
+                 <div className="absolute top-0 right-0 p-6">
+                    <button onClick={()=>setEditingConfig(null)} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X size={24}/></button>
+                 </div>
+                 <h3 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tight">Recipe Editor</h3>
+                 <form onSubmit={(e)=>{e.preventDefault(); handleUpdate(editingConfig, 'configsList', setConfigsList); setEditingConfig(null);}} className="grid grid-cols-2 gap-6">
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stage</label><input required value={editingConfig.Stage||''} onChange={e=>setEditingConfig({...editingConfig, Stage:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="stages-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Config Name</label><input required value={editingConfig.Config||''} onChange={e=>setEditingConfig({...editingConfig, Config:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">FULL DESCRIPTION / 配置描述<textarea value={editingConfig.Description||''} onChange={e=>setEditingConfig({...editingConfig, Description:e.target.value})} className="w-full h-32 text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-2xl shadow-inner"/></div>
+                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Update Config Base</button></div>
                  </form>
               </div>
             </div>
           )}
 
           {editingReadiness && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
-                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingReadiness.Project ? 'Edit Readiness' : 'New Item'}</h3><button type="button" onClick={()=>setEditingReadiness(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
-                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('readiness', editingReadiness)}} className="grid grid-cols-3 gap-6 text-[11px] font-bold">
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingReadiness.Project||''} onChange={e=>setEditingReadiness({...editingReadiness, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingReadiness.Stage||''} onChange={e=>setEditingReadiness({...editingReadiness, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">CATEGORY<input value={editingReadiness.Category||''} onChange={e=>setEditingReadiness({...editingReadiness, Category:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM<input value={editingReadiness.Item||''} onChange={e=>setEditingReadiness({...editingReadiness, Item:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">NUMBERS<input type="number" value={editingReadiness.Numbers||''} onChange={e=>setEditingReadiness({...editingReadiness, Numbers:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ETA<input type="date" value={editingReadiness.ETA||''} onChange={e=>setEditingReadiness({...editingReadiness, ETA:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STATUS<select value={editingReadiness.Status||''} onChange={e=>setEditingReadiness({...editingReadiness, Status:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"><option value=""></option><option value="PURCHASING">PURCHASING</option><option value="NOT START">NOT START</option><option value="ARRIVED">ARRIVED</option></select></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PO<input value={editingReadiness.PO||''} onChange={e=>setEditingReadiness({...editingReadiness, PO:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-3 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingReadiness.Remark||''} onChange={e=>setEditingReadiness({...editingReadiness, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-3 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Item</button></div>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
+                 <div className="absolute top-0 right-0 p-6">
+                    <button onClick={()=>setEditingReadiness(null)} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X size={24}/></button>
+                 </div>
+                 <h3 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tight">Readiness Editor</h3>
+                 <form onSubmit={(e)=>{e.preventDefault(); handleUpdate(editingReadiness, 'readinessItems', setReadinessItems); setEditingReadiness(null);}} className="grid grid-cols-2 gap-6">
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project</label><input required value={editingReadiness.Project||''} onChange={e=>setEditingReadiness({...editingReadiness, Project:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="projects-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stage</label><input required value={editingReadiness.Stage||''} onChange={e=>setEditingReadiness({...editingReadiness, Stage:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="stages-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label><input required value={editingReadiness.Category||''} onChange={e=>setEditingReadiness({...editingReadiness, Category:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Item Title</label><input required value={editingReadiness.Item||''} onChange={e=>setEditingReadiness({...editingReadiness, Item:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label><select value={editingReadiness.Status||''} onChange={e=>setEditingReadiness({...editingReadiness, Status:e.target.value.toUpperCase()})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm uppercase"><option value="NOT STARTED">NOT STARTED</option><option value="PURCHASING">PURCHASING</option><option value="ARRIVED">ARRIVED</option><option value="N/A">N/A</option></select></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ETA</label><input type="date" value={editingReadiness.ETA||''} onChange={e=>setEditingReadiness({...editingReadiness, ETA:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Remark</label><input value={editingReadiness.Remark||''} onChange={e=>setEditingReadiness({...editingReadiness, Remark:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
+                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Update Readiness</button></div>
                  </form>
               </div>
             </div>
           )}
 
           {editingDocument && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2rem] w-full max-w-3xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
-                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingDocument.Project ? 'Edit Document' : 'New Document'}</h3><button type="button" onClick={()=>setEditingDocument(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
-                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('document', editingDocument)}} className="grid grid-cols-2 gap-6 text-[11px] font-bold">
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingDocument.Project||''} onChange={e=>setEditingDocument({...editingDocument, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingDocument.Stage||''} onChange={e=>setEditingDocument({...editingDocument, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DOCUMENT NAME<input value={editingDocument['Document name']||''} onChange={e=>setEditingDocument({...editingDocument, 'Document name':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
-                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">LINK<input value={editingDocument.Link||''} onChange={e=>setEditingDocument({...editingDocument, Link:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
-                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingDocument.Remark||''} onChange={e=>setEditingDocument({...editingDocument, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
+                 <div className="absolute top-0 right-0 p-6">
+                    <button onClick={()=>setEditingDocument(null)} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X size={24}/></button>
+                 </div>
+                 <h3 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tight">Doc Editor</h3>
+                 <form onSubmit={(e)=>{e.preventDefault(); handleUpdate(editingDocument, 'documents', setDocuments); setEditingDocument(null);}} className="grid grid-cols-2 gap-6">
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project</label><input required value={editingDocument.Project||''} onChange={e=>setEditingDocument({...editingDocument, Project:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="projects-data"/></div>
+                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stage</label><input required value={editingDocument.Stage||''} onChange={e=>setEditingDocument({...editingDocument, Stage:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="stages-data"/></div>
+                    <div className="col-span-2 space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Doc Title</label><input required value={editingDocument['Document name']||''} onChange={e=>setEditingDocument({...editingDocument, 'Document name':e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
+                    <div className="col-span-2 space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">File Link (URL)</label><input value={editingDocument.Link||''} onChange={e=>setEditingDocument({...editingDocument, Link:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-mono text-xs"/></div>
+                    <div className="col-span-2 space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Remark</label><input value={editingDocument.Remark||''} onChange={e=>setEditingDocument({...editingDocument, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
                     <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Document</button></div>
                  </form>
               </div>
             </div>
           )}
+
+          <datalist id="projects-data">{getDynamicOptions(records).projects.map(p=><option key={p} value={p}/>)}</datalist>
+          <datalist id="stages-data">{getDynamicOptions(records).stages.map(p=><option key={p} value={p}/>)}</datalist>
+          <datalist id="builds-data">{getDynamicOptions(samples).builds.map(p=><option key={p} value={p}/>)}</datalist>
+          <datalist id="configs-data">{getDynamicOptions(records).configs.map(p=><option key={p} value={p}/>)}</datalist>
+          <datalist id="keepers-data">{getDynamicOptions(samples).keepers.map(p=><option key={p} value={p}/>)}</datalist>
         </div>
       );
     }
