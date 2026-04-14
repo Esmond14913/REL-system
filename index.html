@@ -38,11 +38,27 @@
     <a href="https://www.google.com/chrome/" target="_blank" style="background: #4f46e5; color: #fff; padding: 0.75rem 1.5rem; border-radius: 0.75rem; text-decoration: none; font-weight: bold; margin-top: 1rem;">Download Chrome</a>
   </div>
   <div id="root"></div>
-  <script>
-    if (!window.showDirectoryPicker) {
-      document.getElementById('compatibility-overlay').classList.add('active');
-      document.getElementById('root').style.display = 'none';
-    }
+    <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const isSecure = window.isSecureContext;
+      const hasApi = !!window.showDirectoryPicker;
+      const overlay = document.getElementById('compatibility-overlay');
+      const root = document.getElementById('root');
+      
+      if (!hasApi) {
+        overlay.classList.add('active');
+        root.style.display = 'none';
+        
+        // 動態顯示診斷訊息
+        const reasonMsg = !isSecure ? '⚠️ 原因：非 HTTPS 安全環境 (Insecure Context)' : '⚠️ 原因：瀏覽器或插件封鎖了 API (API Blocked)';
+        const p = document.createElement('p');
+        p.style.color = '#ef4444';
+        p.style.fontWeight = 'bold';
+        p.style.marginTop = '1rem';
+        p.innerText = reasonMsg;
+        overlay.appendChild(p);
+      }
+    });
   </script>
 
   <script type="text/babel" data-type="module">
