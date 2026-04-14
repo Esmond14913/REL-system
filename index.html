@@ -3,385 +3,971 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>REL PORTAL | HQA Lab Management</title>
-  <meta name="description" content="REL PORTAL: A local-first, privacy-focused Laboratory Management System.">
-  <meta name="theme-color" content="#4f46e5">
-  <link rel="manifest" href="manifest.json">
+  <title>REL Lab Dashboard - Local-first</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  <style>
-    #compatibility-overlay { display: none; position: fixed; inset: 0; background: #fff; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; font-family: sans-serif; }
-    #compatibility-overlay.active { display: flex; }
-    .sticky-header th { position: sticky; top: 0; background: #f8fafc; z-index: 20; border-bottom: 2px solid #e2e8f0; }
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-  </style>
+  <script>window.react = window.React;</script>
+  <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-900">
-  <div id="compatibility-overlay">
-    <div style="font-size: 4rem; margin-bottom: 2rem;">🚀</div>
-    <h2 style="font-weight: 900; font-size: 1.5rem; color: #1e293b;">Browser Not Supported / 環境不支援</h2>
-    <p style="color: #64748b; margin: 1rem 0; max-width: 400px; line-height: 1.6;">Please use Chrome/Edge on Desktop.</p>
-  </div>
   <div id="root"></div>
 
-  <script type="text/babel">
+  <script type="text/babel" data-type="module">
     const { useState, useEffect, useMemo, useRef } = React;
-    
-    // 零依賴 SVG 圖示集
-    const Icons = {
-      Records: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>,
-      Tracking: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>,
-      Config: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
-      Readiness: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>,
-      Docs: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>,
-      Stats: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
-      Inventory: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-      Settings: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-      Search: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-      Plus: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-      Edit: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-      Trash: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
-      Rotate: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><polyline points="21 3 21 8 16 8"/></svg>,
-      Lock: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
-      X: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    };
+    const { 
+      Table, PlusCircle, Trash2, Search, Lock,
+      X, Pencil, ChevronLeft, ChevronRight, Box, ClipboardList, 
+      Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
+      FolderSearch, AlertCircle, FolderLock, Package,
+      CheckCircle, FileText, Layers, LayoutList, RotateCcw
+    } = window.LucideReact;
 
     const DB_NAME = 'HQA_LocalDB';
     const STORE_NAME = 'handles';
 
-    const openDB = () => new Promise((resolve) => {
+    const openDB = () => new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, 1);
       req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
       req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
     });
-
-    const getHandleFromDB = async () => {
-      const db = await openDB();
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).get('dir_handle');
-      return new Promise((res) => req.onsuccess = () => res(req.result));
-    };
 
     const saveHandleToDB = async (handle) => {
       const db = await openDB();
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put(handle, 'dir_handle');
-      return new Promise((res) => tx.oncomplete = res);
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(handle, 'dir_handle');
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    };
+
+    const getHandleFromDB = async () => {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const req = tx.objectStore(STORE_NAME).get('dir_handle');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
     };
 
     async function verifyPermission(fileHandle, withWrite) {
-      const opts = { mode: withWrite ? 'readwrite' : 'read' };
-      if ((await fileHandle.queryPermission(opts)) === 'granted') return true;
-      try { if ((await fileHandle.requestPermission(opts)) === 'granted') return true; } catch (e) {}
+      const opts = {};
+      if (withWrite) { opts.mode = 'readwrite'; }
+      if ((await fileHandle.queryPermission(opts)) === 'granted') { return true; }
+      if ((await fileHandle.requestPermission(opts)) === 'granted') { return true; }
       return false;
     }
 
     const generateId = () => Math.random().toString(36).substr(2, 9);
+    const STAGE_SUGGESTIONS = ['All', 'P2', 'EVT', 'DVT', 'PVT', 'MP'];
     const RESULTS = ['On-going', 'Pass', 'Fail', 'On-hold', 'N/A', 'Not Start'];
 
     const getStageStyle = (s) => {
-      const m = { P2: 'bg-slate-200 text-slate-700', EVT: 'bg-orange-100 text-orange-600', DVT: 'bg-indigo-100 text-indigo-600', PVT: 'bg-purple-100 text-purple-600', MP: 'bg-green-100 text-green-600' };
-      return m[String(s).toUpperCase()] || 'bg-slate-100 text-slate-400';
+      const m = { P2: 'bg-slate-200 text-slate-700 border-slate-300', EVT: 'bg-orange-100 text-orange-600 border-orange-200', DVT: 'bg-indigo-100 text-indigo-600 border-indigo-200', PVT: 'bg-purple-100 text-purple-600 border-purple-200', MP: 'bg-green-100 text-green-600 border-green-200', ALL: 'bg-blue-100 text-blue-600 border-blue-200' };
+      return m[String(s).toUpperCase()] || 'bg-slate-100 border-slate-200';
     };
 
     const getResultStyle = (r) => {
-      const m = { Pass: 'bg-emerald-500 text-white', Fail: 'bg-rose-500 text-white', 'On-going': 'bg-yellow-400 text-black', 'On-hold': 'bg-white text-slate-700 border border-slate-200', 'N/A': 'bg-black text-white', 'Not Start': 'bg-slate-100 text-slate-400' };
+      const m = { Pass: 'bg-emerald-500 text-white shadow-sm', Fail: 'bg-rose-500 text-white shadow-sm', 'On-going': 'bg-yellow-400 text-black shadow-sm', 'On-hold': 'bg-white text-slate-700 border-slate-200 shadow-sm', 'N/A': 'bg-black text-white shadow-sm', 'Not Start': 'bg-slate-100 text-slate-400 border-slate-200 shadow-sm' };
       return m[String(r)] || 'bg-slate-100 text-slate-400';
+    };
+
+    const SidebarLabel = ({ en, zh }) => (
+      <span className="flex flex-col items-start justify-center leading-none text-left pointer-events-none">
+        <span className="text-[9px] font-black uppercase tracking-tighter opacity-50 mb-1 block">{String(en)}</span>
+        <span className="text-[14px] font-bold tracking-tight whitespace-nowrap block">{String(zh)}</span>
+      </span>
+    );
+
+    const getDynamicOptions = (arr) => {
+        return {
+            projects: [...new Set(arr.map(a=>a.Project).filter(Boolean))],
+            stages: [...new Set(arr.map(a=>a.Stage).filter(Boolean))],
+            builds: [...new Set(arr.map(a=>a.Build).filter(Boolean))],
+            configs: [...new Set(arr.map(a=>a.Config).filter(Boolean))],
+            keepers: [...new Set(arr.map(a=>a.Keeper).filter(Boolean))]
+        };
     };
 
     function App() {
       const [activeTab, setActiveTab] = useState('settings'); 
+      const [dirHandle, setDirHandle] = useState(null);
+      const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
+      const [message, setMessage] = useState('');
+
       const [records, setRecords] = useState([]);
       const [samples, setSamples] = useState([]);
-      const [configsList, setConfigsList] = useState([]);
+      const [configsList, setConfigsList] = useState([]); 
       const [readinessItems, setReadinessItems] = useState([]);
       const [documents, setDocuments] = useState([]);
-      const [dirHandle, setDirHandle] = useState(null);
-      const [message, setMessage] = useState('System Initialized');
-      const [isAdmin, setIsAdmin] = useState(false);
-      const [inventoryGroupBy, setInventoryGroupBy] = useState('Keeper');
-      const [inventorySubView, setInventorySubView] = useState('Detail');
+
       const [searchTerm, setSearchTerm] = useState('');
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+      const [statsCalcMode, setStatsCalcMode] = useState('overall'); // 'overall' | 'category'
+      const [inventoryGroupBy, setInventoryGroupBy] = useState('keeper'); // 'keeper' | 'stagebuild'
+      const [inventorySubView, setInventorySubView] = useState('detail'); // 'detail' | 'config'
 
       const [filterProject, setFilterProject] = useState('All');
       const [filterStage, setFilterStage] = useState('All');
+      const [filterBuild, setFilterBuild] = useState('All');
+      const [filterConfig, setFilterConfig] = useState('All');
       const [filterResult, setFilterResult] = useState('All');
+      const [filterKeeper, setFilterKeeper] = useState('All');
+      const [filterStatus, setFilterStatus] = useState('All');
 
-      useEffect(() => {
-        const init = async () => {
-          try {
-            const stored = await getHandleFromDB();
-            if (stored && await verifyPermission(stored, true)) {
-              setDirHandle(stored); await loadData(stored); setActiveTab('records');
-            }
-          } catch(e) {}
-        };
-        init();
-      }, []);
+      const [editingRecord, setEditingRecord] = useState(null);
+      const [editingSample, setEditingSample] = useState(null);
+      const [editingConfig, setEditingConfig] = useState(null);
+      const [editingReadiness, setEditingReadiness] = useState(null);
+      const [editingDocument, setEditingDocument] = useState(null);
 
-      const loadData = async (handle) => {
-        try {
-          let latest = null; let latestDate = '';
-          for await (const entry of handle.values()) {
-            if (entry.kind === 'file' && entry.name.startsWith('HQA_Master_')) {
-              const d = entry.name.match(/\d{8}/)?.[0] || '';
-              if (d > latestDate) { latestDate = d; latest = entry; }
-            }
-          }
-          if (!latest) return;
-          const file = await latest.getFile();
-          const buffer = await file.arrayBuffer();
-          const wb = XLSX.read(buffer, { type: 'array' });
-          const getS = (n) => (XLSX.utils.sheet_to_json(wb.Sheets[n]||{})).map(r => ({id: generateId(), ...r}));
-          setRecords(getS('Records')); setSamples(getS('Tracking')); setConfigsList(getS('Config'));
-          setReadinessItems(getS('Readiness')); setDocuments(getS('Documents'));
-          setMessage('Project Data Loaded');
-        } catch (e) {}
+      const resetFilters = () => {
+        setFilterProject('All'); setFilterStage('All'); setFilterBuild('All');
+        setFilterConfig('All'); setFilterResult('All'); setFilterKeeper('All');
+        setFilterStatus('All'); setSearchTerm('');
       };
 
-      const saveToExcel = async (payload = {}) => {
-        if (!dirHandle) return;
+      useEffect(() => {
+        const initLocalFS = async () => {
+          try {
+            const storedHandle = await getHandleFromDB();
+            if (storedHandle && await verifyPermission(storedHandle, true)) {
+              setDirHandle(storedHandle);
+              await loadAndCleanupExcelData(storedHandle, retentionDays);
+              setActiveTab('records');
+            }
+          } catch (err) { console.warn('Silent local handle restore failed:', err); }
+        };
+        initLocalFS();
+      }, []);
+
+      useEffect(() => { localStorage.setItem('retention_days', retentionDays.toString()); }, [retentionDays]);
+
+      const autoCleanup = async (handle, rDays) => {
+        if (!handle) return;
         try {
-          setMessage('Saving...');
+          const thresholdDate = dayjs().subtract(rDays, 'day');
+          for await (const entry of handle.values()) {
+            if (entry.kind === 'file' && entry.name.startsWith('HQA_Master_') && entry.name.endsWith('.xlsx')) {
+               const dateStr = entry.name.replace('HQA_Master_', '').replace('.xlsx', '');
+               if (dateStr.length === 8) {
+                  const fileDate = dayjs(`${dateStr.substring(0,4)}-${dateStr.substring(4,6)}-${dateStr.substring(6,8)}`);
+                  if (fileDate.isValid() && fileDate.isBefore(thresholdDate, 'day')) {
+                     await handle.removeEntry(entry.name);
+                     console.log(`Auto Cleanup: Deleted old backup ${entry.name}`);
+                  }
+               }
+            }
+          }
+        } catch(err) { console.error('Cleanup failed:', err); }
+      };
+
+      const loadAndCleanupExcelData = async (handle, rDays) => {
+        try {
+          if (!handle) return;
+          setMessage('Scanning folder...');
+          let latestFileHandle = null;
+          let latestDateStr = '';
+          for await (const entry of handle.values()) {
+             if (entry.kind === 'file' && entry.name.startsWith('HQA_Master_') && entry.name.endsWith('.xlsx')) {
+                const dateStr = entry.name.replace('HQA_Master_', '').replace('.xlsx', '');
+                if (dateStr > latestDateStr) { latestDateStr = dateStr; latestFileHandle = entry; }
+             }
+          }
+          if (!latestFileHandle) {
+             setMessage('No existing Excel found. A new one will be created upon first save.');
+             setRecords([]); setSamples([]); setConfigsList([]); setReadinessItems([]); setDocuments([]);
+             return;
+          }
+          setMessage(`Loading ${latestFileHandle.name}...`);
+          const file = await latestFileHandle.getFile();
+          const buffer = await file.arrayBuffer();
+          const wb = XLSX.read(buffer, { type: 'array' });
+          const getSheetData = (name) => {
+             const sheet = wb.Sheets[name];
+             if (!sheet) return [];
+             return XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: "yyyy-mm-dd" }).map(row => ({ id: generateId(), ...row }));
+          };
+          setRecords(getSheetData('Records'));
+          setSamples(getSheetData('Tracking'));
+          setConfigsList(getSheetData('Config'));
+          setReadinessItems(getSheetData('Readiness'));
+          setDocuments(getSheetData('Documents'));
+          setMessage('Ready.');
+          autoCleanup(handle, rDays);
+        } catch(err) { console.error('Load Excel failed:', err); setMessage('Error loading Excel.'); }
+      };
+
+      const saveToExcel = async (payload) => {
+        if (!dirHandle) return;
+        setMessage('Saving...');
+        try {
           const today = dayjs().format('YYYYMMDD');
           const fileName = `HQA_Master_${today}.xlsx`;
+          const prepare = (arr) => arr.map(r => { const {id, ...rest} = r; return rest; });
           const wb = XLSX.utils.book_new();
-          const p = (arr) => arr.map(x => { const {id, ...rest} = x; return rest; });
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(p(payload.records || records)), 'Records');
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(p(payload.samples || samples)), 'Tracking');
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(p(payload.configsList || configsList)), 'Config');
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(p(payload.readinessItems || readinessItems)), 'Readiness');
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(p(payload.documents || documents)), 'Documents');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.records || records)), 'Records');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.samples || samples)), 'Tracking');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.configsList || configsList)), 'Config');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.readinessItems || readinessItems)), 'Readiness');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prepare(payload.documents || documents)), 'Documents');
           const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-          const handle = await dirHandle.getFileHandle(fileName, { create: true });
-          const writable = await handle.createWritable();
-          await writable.write(wbout); await writable.close();
-          setMessage('Workspace Saved');
-        } catch (e) { setMessage('Save Failed'); }
+          const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(wbout);
+          await writable.close();
+          setMessage(`Saved to ${fileName}`);
+          setTimeout(()=>setMessage('Ready.'), 3000);
+        } catch(err) { console.error('Save failed:', err); setMessage('Failed to save file.'); }
       };
 
       const connectDirectory = async () => {
         try {
-          const h = await window.showDirectoryPicker({ mode: 'readwrite' });
-          await saveHandleToDB(h); setDirHandle(h); await loadData(h); setActiveTab('records');
-        } catch (e) {}
+          const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+          await saveHandleToDB(handle);
+          setDirHandle(handle);
+          await loadAndCleanupExcelData(handle, retentionDays);
+          setActiveTab('records');
+        } catch (err) { console.warn('Directory selection cancelled'); }
+      };
+       const filteredRecords = records.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
+         if (filterConfig !== 'All' && r.Config !== filterConfig) return false;
+         if (filterResult !== 'All' && r.Result !== filterResult) return false;
+         return true;
+      });
+      const filteredSamples = samples.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
+         if (filterConfig !== 'All' && r.Config !== filterConfig) return false;
+         if (filterKeeper !== 'All' && r.Keeper !== filterKeeper) return false;
+         return true;
+      });
+      const filteredConfigs = configsList.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
+         return true;
+      });
+      const filteredReadiness = readinessItems.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (filterStatus !== 'All' && r.Status !== filterStatus) return false;
+         return true;
+      });
+      const filteredDocuments = documents.filter(r => {
+         if (filterProject !== 'All' && r.Project !== filterProject) return false;
+         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         return true;
+      });
+
+      const handleUpdate = async (type, item) => {
+        let payload = {};
+        const updateList = (list, setFunc, key) => {
+          const exists = list.some(x => x.id === item.id);
+          const n = exists ? list.map(x => x.id === item.id ? item : x) : [...list, item];
+          setFunc(n);
+          payload[key] = n;
+        };
+
+        if (type === 'record') updateList(records, setRecords, 'records');
+        else if (type === 'sample') updateList(samples, setSamples, 'samples');
+        else if (type === 'config') updateList(configsList, setConfigsList, 'configsList');
+        else if (type === 'readiness') updateList(readinessItems, setReadinessItems, 'readinessItems');
+        else if (type === 'document') updateList(documents, setDocuments, 'documents');
+
+        await saveToExcel(payload);
+        setEditingRecord(null); setEditingSample(null); setEditingConfig(null); setEditingReadiness(null); setEditingDocument(null);
       };
 
-      const [editingItem, setEditingItem] = useState(null);
-      const [editType, setEditType] = useState(null); // 'records', 'samples', etc.
-
-      const updateItem = (item, type, setter) => {
-        const list = type==='records'?records:type==='samples'?samples:type==='configs'?configsList:type==='readiness'?readinessItems:documents;
-        const newList = [...list];
-        const idx = newList.findIndex(x => x.id === item.id);
-        if (idx > -1) newList[idx] = item; else newList.unshift(item);
-        setter(newList); saveToExcel({ [type==='configs'?'configsList':type==='readiness'?'readinessItems':type]: newList });
+      const deleteItem = async (id, type) => {
+        if (!window.confirm('Delete this item?')) return;
+        let payload = {};
+        if (type === 'records') { const n = records.filter(x => x.id !== id); setRecords(n); payload.records = n; }
+        else if (type === 'samples') { const n = samples.filter(x => x.id !== id); setSamples(n); payload.samples = n; }
+        else if (type === 'configsList') { const n = configsList.filter(x => x.id !== id); setConfigsList(n); payload.configsList = n; }
+        else if (type === 'readinessItems') { const n = readinessItems.filter(x => x.id !== id); setReadinessItems(n); payload.readinessItems = n; }
+        else if (type === 'documents') { const n = documents.filter(x => x.id !== id); setDocuments(n); payload.documents = n; }
+        await saveToExcel(payload);
       };
-
-      const deleteItem = (id, type, setter) => {
-        if (!confirm('Delete this entry?')) return;
-        const list = type==='records'?records:type==='samples'?samples:type==='configs'?configsList:type==='readiness'?readinessItems:documents;
-        const newList = list.filter(x => x.id !== id);
-        setter(newList); saveToExcel({ [type==='configs'?'configsList':type==='readiness'?'readinessItems':type]: newList });
-      };
-
-      const filteredRecords = records.filter(r => (filterProject==='All' || r.Project===filterProject) && (filterStage==='All' || r.Stage===filterStage) && (filterResult==='All' || r.Result===filterResult) && (searchTerm==='' || JSON.stringify(r).toLowerCase().includes(searchTerm.toLowerCase())));
-      const filteredSamples = samples.filter(r => (filterProject==='All' || r.Project===filterProject) && (searchTerm==='' || JSON.stringify(r).toLowerCase().includes(searchTerm.toLowerCase())));
-
-      const projects = [...new Set(records.map(r=>r.Project).filter(Boolean))];
-      const stages = [...new Set(records.map(r=>r.Stage).filter(Boolean))];
 
       return (
-        <div className="flex h-screen overflow-hidden bg-slate-50 font-sans text-slate-900 border-indigo-100">
-          <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-50">
-            <div className="p-6 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100"><Icons.Records /></div>
-                 <h1 className="text-xl font-black text-indigo-900 leading-tight">REL PORTAL</h1>
-              </div>
-            </div>
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
-              {[
-                { id: 'records', zh: '實驗記錄', en: 'RECORDS', icon: Icons.Records },
-                { id: 'tracking', zh: '樣品追蹤', en: 'TRACKING', icon: Icons.Tracking },
-                { id: 'config', zh: '機台配置', en: 'CONFIG', icon: Icons.Config },
-                { id: 'readiness', zh: '物料準備', en: 'READINESS', icon: Icons.Readiness },
-                { id: 'documents', zh: '文件中心', en: 'DOCS', icon: Icons.Docs },
-                { id: 'stats', zh: '綜合統計', en: 'STATS', icon: Icons.Stats },
-                { id: 'inventory', zh: '庫存儀表', en: 'INVENTORY', icon: Icons.Inventory }
-              ].map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl scale-[1.02]' : 'text-slate-500 hover:bg-slate-50 hover:text-indigo-600'}`}>
-                  <tab.icon />
-                  <span className="flex flex-col items-start leading-none">
-                    <span className="text-[9px] font-black uppercase opacity-60 mb-1">{tab.en}</span>
-                    <span className="text-[14px] font-bold">{tab.zh}</span>
-                  </span>
-                </button>
-              ))}
-            </nav>
-            <div className="p-4 border-t border-slate-100 space-y-2">
-               <button onClick={() => setIsAdmin(!isAdmin)} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${isAdmin ? 'bg-indigo-50 text-indigo-700' : 'text-slate-400 hover:bg-slate-50'}`}><Icons.Lock size={16}/> <span className="text-[10px] font-black uppercase tracking-widest">{isAdmin ? 'Admin: ON' : 'Admin: OFF'}</span></button>
-               <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold uppercase text-[10px] tracking-widest ${activeTab==='settings'?'bg-indigo-50 text-indigo-600':'text-slate-400 hover:bg-slate-50'}`}>
-                 <Icons.Settings /> Settings
-               </button>
-            </div>
-          </aside>
+        <div className="min-h-screen bg-[#f1f5f9] flex flex-col md:flex-row font-sans text-slate-900">
+          <datalist id="stage-options">{STAGE_SUGGESTIONS.map(o => <option key={o} value={o} />)}</datalist>
 
-          <main className="flex-1 flex flex-col bg-white overflow-hidden overflow-y-auto">
-            <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-40">
-              <div className="flex items-center gap-4">
-                 <h2 className="text-lg font-black text-slate-800 uppercase tracking-tighter">{activeTab}</h2>
-                 <div className="h-4 w-[1px] bg-slate-200"></div>
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{message}</span>
-              </div>
-              <div className="relative">
-                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icons.Search /></div>
-                 <input type="text" placeholder="Global Search..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} className="bg-slate-100 border-none rounded-2xl py-2 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-indigo-500 transition-all" />
+          <nav className={`h-screen bg-slate-900 text-white flex flex-col shadow-2xl transition-all ${isSidebarOpen ? 'w-72' : 'w-20'}`}>
+            <div className="p-6 flex items-center justify-between border-b border-slate-800">
+              {isSidebarOpen ? <div className="flex flex-col"><div className="flex items-center gap-3 text-indigo-500 font-black text-xl">REL PORTAL</div><div className="text-xs text-slate-400 font-medium tracking-widest mt-1">BY ESMOND</div></div> : <Lock className="mx-auto text-indigo-500" />}
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-slate-800 rounded">{isSidebarOpen ? <ChevronLeft /> : <ChevronRight />}</button>
+            </div>
+            <div className="flex-1 mt-6 px-4 space-y-1 overflow-y-auto">
+              {[
+                { id: 'records', icon: Table, zh: '實驗紀錄' },
+                { id: 'tracking', icon: Box, zh: '樣本追蹤' },
+                { id: 'config_recipes', icon: ClipboardList, zh: '配置規格' },
+                { id: 'readiness', icon: CheckCircle, zh: '準備狀態' },
+                { id: 'documents', icon: FileText, zh: '文件管理' },
+                { id: 'stats', icon: PieChart, zh: '綜合統計' },
+                { id: 'inventory', icon: Package, zh: '樣本庫存' },
+                { id: 'settings', icon: Settings, zh: '系統設定' }
+              ].map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${activeTab === tab.id ? 'bg-indigo-600 shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}>
+                    <Icon size={20}/>
+                    {isSidebarOpen && <SidebarLabel en={tab.id.replace('_', ' ')} zh={tab.zh} />}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="p-4 border-t border-slate-800 flex flex-col gap-2">
+               <div className={`text-xs ${dirHandle ? 'text-emerald-400' : 'text-rose-400'} flex items-center gap-2 truncate`}><FolderSearch size={14} /> {dirHandle ? dirHandle.name : 'No Folder Connected'}</div>
+               <button onClick={() => setIsAdmin(!isAdmin)} className="w-full py-3 rounded-xl bg-slate-700 hover:bg-indigo-500 transition-colors text-xs font-black uppercase shadow-lg">{isAdmin ? 'Readonly Mode' : 'Admin Mode'}</button>
+            </div>
+          </nav>
+
+          <main className="flex-1 flex flex-col bg-slate-50">
+            <header className="px-8 py-6 bg-white border-b flex justify-between items-center">
+              <div><h2 className="text-2xl font-black uppercase">{activeTab.replace('_', ' ')}</h2><p className="text-xs text-indigo-600 font-bold tracking-widest">{message || 'LOCAL-FIRST ARCHITECTURE'}</p></div>
+              <div className="flex gap-3">
+                 <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/><input onChange={e=>setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 bg-slate-100 rounded-xl outline-none w-64" placeholder="Quick search..."/></div>
+                 {dirHandle && <button onClick={()=>loadAndCleanupExcelData(dirHandle, retentionDays)} className="p-2 border rounded-xl hover:bg-slate-50 relative group"><RefreshCw size={20}/></button>}
               </div>
             </header>
 
-            <section className="flex-1 p-8">
+            <div className="space-y-6">
+               <div className="p-8 space-y-6">
               {!dirHandle && activeTab !== 'settings' ? (
-                <div className="h-[60vh] flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in zoom-in duration-500">
-                  <div className="w-24 h-24 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 shadow-inner"><Icons.Config size={40} /></div>
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Project Disconnected</h3>
-                    <p className="text-slate-400 text-sm max-w-sm mx-auto font-medium">Please connect your workspace folder in setting.</p>
-                  </div>
-                  <button onClick={() => setActiveTab('settings')} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg hover:bg-slate-800 transition-all uppercase text-xs tracking-widest">Setup Workspace</button>
-                </div>
-              ) : activeTab === 'settings' ? (
-                <div className="max-w-4xl mx-auto py-10 animate-in fade-in duration-700">
-                   <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl space-y-8">
-                      <div><h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">Settings</h2><p className="text-slate-400 font-bold mt-2 uppercase text-[10px] tracking-[0.2em]">Workspace Configuration</p></div>
-                      <div className="p-8 bg-slate-50 rounded-3xl border border-slate-200 flex items-center justify-between group hover:border-indigo-400 transition-colors">
-                        <div className="flex gap-5 items-center">
-                          <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm text-indigo-600 group-hover:scale-110 transition-transform"><Icons.Records /></div>
-                          <div className="flex flex-col">
-                            <span className="text-base font-black text-slate-800">Local Directory / 專案路徑</span>
-                            <span className="text-sm font-semibold text-slate-400">{dirHandle ? `Connected: ${dirHandle.name}` : 'Not Linked'}</span>
-                          </div>
-                        </div>
-                        <button onClick={connectDirectory} className="bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white px-8 py-2.5 rounded-xl font-black transition-all shadow-lg uppercase text-[10px] tracking-widest">Connect Folder</button>
-                      </div>
-                   </div>
-                </div>
-              ) : activeTab === 'records' ? (
-                <div className="animate-in fade-in duration-500 space-y-6">
-                   <div className="bg-white p-6 rounded-3xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex flex-wrap gap-4 items-center">
-                         <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                         <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                         <button onClick={()=>{setFilterProject('All');setFilterStage('All');setSearchTerm('');}} className="p-2 text-indigo-600 bg-indigo-50 rounded-xl"><Icons.Rotate size={20}/></button>
-                      </div>
-                      {isAdmin && <button onClick={()=>{setEditingItem({id:generateId(), Result:'Pass'}); setEditType('records');}} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 uppercase text-[10px] tracking-widest"><Icons.Plus /> New Record</button>}
-                   </div>
-                   <div className="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
-                      <table className="w-full text-left border-separate border-spacing-0">
-                        <thead className="bg-slate-50 border-b text-[10px] font-black uppercase text-slate-400">
-                           <tr><th className="p-4 border-r sticky left-0 bg-slate-100 z-10">Project</th><th className="p-4">Stage</th><th className="p-4">Category</th><th className="p-4">Config</th><th className="p-4">Result</th><th className="p-4">Date</th>{isAdmin && <th className="p-4 text-center">Action</th>}</tr>
-                        </thead>
-                        <tbody className="divide-y text-[11px] font-medium">
-                           {filteredRecords.map(r => (
-                             <tr key={r.id} className="hover:bg-slate-50 group transition-colors">
-                               <td className="p-4 font-bold border-r sticky left-0 bg-white z-10">{r.Project}</td>
-                               <td className="p-4"><span className={`px-2 py-1 rounded-lg font-black uppercase text-[9px] ${getStageStyle(r.Stage)}`}>{r.Stage}</span></td>
-                               <td className="p-4 font-black text-indigo-900">{r.Category}</td>
-                               <td className="p-4 font-mono text-slate-500">{r.Config || '-'}</td>
-                               <td className="p-4"><span className={`px-3 py-1 rounded-full font-black uppercase tracking-widest text-[9px] shadow-sm ${getResultStyle(r.Result)}`}>{r.Result}</span></td>
-                               <td className="p-4 text-slate-400">{String(r.Date).split('T')[0]}</td>
-                               {isAdmin && <td className="p-4 text-center">
-                                 <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                   <button onClick={()=>{setEditingItem(r); setEditType('records');}} className="p-1 text-indigo-600 hover:bg-indigo-50 rounded"><Icons.Edit /></button>
-                                   <button onClick={()=>deleteItem(r.id, 'records', setRecords)} className="p-1 text-rose-500 hover:bg-rose-50 rounded"><Icons.Trash /></button>
-                                 </div>
-                               </td>}
-                             </tr>
-                           ))}
-                        </tbody>
-                      </table>
-                   </div>
-                </div>
-              ) : activeTab === 'inventory' ? (
-                <div className="space-y-6">
-                   <div className="flex justify-between items-center bg-white p-2 rounded-2xl border">
-                      <div className="flex gap-2">
-                        <button onClick={()=>setInventoryGroupBy('Keeper')} className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inventoryGroupBy==='Keeper'?'bg-indigo-600 text-white shadow-lg':'text-slate-400 hover:text-indigo-600'}`}>By Keeper / 按保管人</button>
-                        <button onClick={()=>setInventoryGroupBy('Stage')} className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inventoryGroupBy==='Stage'?'bg-indigo-600 text-white shadow-lg':'text-slate-400 hover:text-indigo-600'}`}>By Stage / 按階段</button>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={()=>setInventorySubView('Detail')} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase ${inventorySubView==='Detail'?'bg-indigo-50 text-indigo-600':'text-slate-400'}`}>Detail</button>
-                        <button onClick={()=>setInventorySubView('Config')} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase ${inventorySubView==='Config'?'bg-indigo-50 text-indigo-600':'text-slate-400'}`}>Config View</button>
-                      </div>
-                   </div>
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-20">
-                      {(() => {
-                        const groups = {};
-                        samples.forEach(s => {
-                           const k = inventoryGroupBy==='Keeper' ? (s.Keeper||'Other') : (s.Stage||'N/A');
-                           if (!groups[k]) groups[k] = [];
-                           groups[k].push(s);
-                        });
-                        return Object.entries(groups).map(([name, data]) => {
-                           const total = data.reduce((s, x) => s + parseInt(x.Units||1), 0);
-                           const sub = data.reduce((a, c) => {
-                             const sk = inventorySubView==='Config'?(c.Config||'N/A'):(inventoryGroupBy==='Keeper'?c.Project:c.Keeper);
-                             a[sk] = (a[sk]||0) + parseInt(c.Units||1); return a;
-                           }, {});
-                           return (
-                             <div key={name} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-4 hover:border-indigo-400 transition-all flex flex-col h-full group">
-                                <div className="flex justify-between items-start">
-                                   <div className="space-y-1"><h4 className="text-sm font-black text-indigo-900 uppercase leading-tight">{name}</h4><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">TOTAL UNITS</p></div>
-                                   <div className="bg-indigo-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg group-hover:scale-110 shadow-lg">{total}</div>
-                                </div>
-                                <div className="flex-1 space-y-2">
-                                   {Object.entries(sub).map(([d, c]) => (
-                                     <div key={d} className="flex justify-between items-center p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white transition-colors">
-                                        <span className="text-[10px] font-black text-slate-600 uppercase truncate mr-2">{d}</span>
-                                        <span className="text-[10px] font-black text-indigo-600 bg-white px-2 py-0.5 rounded-lg border border-indigo-100 shadow-sm">{c}</span>
-                                     </div>
-                                   ))}
-                                </div>
-                             </div>
-                           );
-                        });
-                      })()}
-                   </div>
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                   <AlertCircle size={48} className="mb-4 text-slate-300"/>
+                   <h3 className="text-xl font-bold mb-2">Folder Not Connected</h3>
+                   <p className="mb-4 text-sm">Please go to System Settings to select a local folder for Excel data storage.</p>
+                   <button onClick={()=>setActiveTab('settings')} className="px-6 py-2 bg-indigo-600 text-white rounded-full font-bold">Go to Settings</button>
                 </div>
               ) : (
-                <div className="h-[50vh] flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-100 rounded-[3rem] text-slate-300">
-                  <Icons.Records />
-                  <p className="font-black uppercase tracking-widest mt-4">Module Content Ready</p>
-                </div>
+                <>
+                {activeTab === 'settings' && (
+                  <div className="max-w-2xl bg-white p-8 rounded-3xl shadow-sm border">
+                     <h3 className="text-lg font-black uppercase border-b pb-4 mb-6"><Settings className="inline mr-2"/> Settings & Local Connection</h3>
+                     <div className="space-y-6">
+                        <div>
+                           <label className="block text-sm font-bold text-slate-500 mb-2">Local Master Folder</label>
+                           <div className="flex items-center gap-4">
+                             <div className="flex-1 p-3 bg-slate-100 rounded-xl font-mono text-sm border flex items-center gap-2">{dirHandle ? <React.Fragment><FolderLock className="text-emerald-500"/> {dirHandle.name}</React.Fragment> : <React.Fragment><AlertCircle className="text-rose-500"/> Not Connected</React.Fragment>}</div>
+                             <button onClick={connectDirectory} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl border border-indigo-700">{dirHandle ? 'Change Folder' : 'Connect Folder'}</button>
+                           </div>
+                        </div>
+                        <div>
+                           <label className="block text-sm font-bold text-slate-500 mb-2">Excel Retention Days</label>
+                           <input type="number" min="1" max="365" value={retentionDays} onChange={e=>setRetentionDays(parseInt(e.target.value,10))} className="w-full p-3 border rounded-xl bg-slate-50"/>
+                        </div>
+                     </div>
+                  </div>
+                )}
+                 {activeTab === 'records' && (
+                  <div className="space-y-6">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4 items-center">
+                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(records).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(records).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(records).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(records).configs.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterResult} onChange={e=>setFilterResult(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Results</option>{[...new Set(records.map(r=>r.Result).filter(Boolean))].map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingRecord({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Record</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border">
+                        <table className="w-full text-left border-separate border-spacing-0">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-[10px] uppercase text-slate-400 font-bold">
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / 版本</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/6">Test item / 測試項目</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Q'ty / 數量</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Start / 開始</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">End / 結束</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Result / 結果</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Report / 報告</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / 備註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-[11px]">
+                             {filteredRecords.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
+                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Build||'')}</td>
+                                 <td className="p-3 font-mono text-slate-500 border-b border-slate-100">{String(r.Config||'')}</td>
+                                 <td className="p-3 text-indigo-600 font-bold border-b border-slate-100">{String(r.Category||'')}</td>
+                                 <td className="p-3 border-b border-slate-100">{String(r['Test item']||'')}</td>
+                                 <td className="p-3 border-b border-slate-100">{String(r["Q'ty"]||'')}</td>
+                                 <td className="p-3 text-slate-500 font-mono border-b border-slate-100">{String(r.Start||'').replace('T00:00:00.000Z','')}</td>
+                                 <td className="p-3 text-slate-500 font-mono border-b border-slate-100">{String(r.End||'').replace('T00:00:00.000Z','')}</td>
+                                 <td className="p-3 text-center border-b border-slate-100"><span className={`px-3 py-1 rounded-full border text-[10px] font-bold tracking-widest uppercase ${getResultStyle(r.Result)}`}>{String(r.Result||'')}</span></td>
+                                 <td className="p-3 justify-center flex border-b border-slate-100">{r.Report ? <a href={r.Report} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Link</a> : ''}</td>
+                                 <td className="p-3 text-slate-400 border-b border-slate-100">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
+                                   <div className="flex justify-center gap-2">
+                                     <button onClick={()=>setEditingRecord(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
+                                     <button onClick={()=>deleteItem(r.id, 'records')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
+                                   </div>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredRecords.length === 0 && <tr><td colSpan="13" className="text-center p-8 text-slate-400">No records found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'tracking' && (
+                  <div className="space-y-6">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4 items-center">
+                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(samples).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(samples).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(samples).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(samples).configs.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterKeeper} onChange={e=>setFilterKeeper(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Keepers</option>{getDynamicOptions(samples).keepers.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingSample({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Sample</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border">
+                        <table className="w-full text-left border-separate border-spacing-0">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-[10px] uppercase text-slate-400 font-bold">
+                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 text-left">Project / 專案</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / 版本</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">DUT ID / 樣機編號</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">SN / 序號</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 保管人</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 1 / 項目 1</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 2 / 項目 2</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Failure / 不良現象</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">FA Report / FA 報告</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5 text-left">Remark / 備註</th>
+                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-[11px]">
+                             {filteredSamples.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
+                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Build||'')}</td>
+                                 <td className="p-3 font-mono text-slate-500 border-b border-slate-100">{String(r.Config||'')}</td>
+                                 <td className="p-3 font-mono text-slate-600 border-b border-slate-100">{String(r['DUT ID']||'')}</td>
+                                 <td className="p-3 font-mono text-slate-600 border-b border-slate-100">{String(r.SN||'')}</td>
+                                 <td className="p-3 font-bold text-indigo-600 border-b border-slate-100">{String(r.Keeper||'')}</td>
+                                 <td className="p-3 text-slate-600 border-b border-slate-100">{String(r.item1||'')}</td>
+                                 <td className="p-3 text-slate-600 border-b border-slate-100">{String(r.item2||'')}</td>
+                                 <td className="p-3 text-rose-500 font-bold border-b border-slate-100">{String(r.Failure||'')}</td>
+                                 <td className="p-3 border-b border-slate-100">{r['FA report'] ? <a href={r['FA report']} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Link</a> : ''}</td>
+                                 <td className="p-3 text-slate-400 border-b border-slate-100">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
+                                   <div className="flex justify-center gap-2">
+                                     <button onClick={()=>setEditingSample(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
+                                     <button onClick={()=>deleteItem(r.id, 'samples')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
+                                   </div>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredSamples.length === 0 && <tr><td colSpan="13" className="text-center p-8 text-slate-400">No samples found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+                 {activeTab === 'config_recipes' && (
+                  <div className="space-y-6">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4 items-center">
+                          <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(configsList).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(configsList).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <select value={filterBuild} onChange={e=>setFilterBuild(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Builds</option>{getDynamicOptions(configsList).builds.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingConfig({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Config</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border">
+                        <table className="w-full text-left border-separate border-spacing-0">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-[10px] uppercase text-slate-400 font-bold">
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 w-[10%]">Project / 專案</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Build / 版本</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Config / 配置</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Size / 尺寸</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[25%]">Description / 描述</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[20%]">Remark / 備註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-[11px]">
+                             {filteredConfigs.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
+                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Build||'')}</td>
+                                 <td className="p-3 font-mono text-indigo-600 font-bold border-b border-slate-100">{String(r.Config||'')}</td>
+                                 <td className="p-3 font-mono text-slate-600 border-b border-slate-100">{String(r.Size||'')}</td>
+                                 <td className="p-3 text-slate-700 border-b border-slate-100">{String(r.Description||'')}</td>
+                                 <td className="p-3 text-slate-400 border-b border-slate-100">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
+                                   <div className="flex justify-center gap-2">
+                                     <button onClick={()=>setEditingConfig(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
+                                     <button onClick={()=>deleteItem(r.id, 'configsList')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
+                                   </div>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredConfigs.length === 0 && <tr><td colSpan="8" className="text-center p-8 text-slate-400">No configs found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'readiness' && (
+                  <div className="space-y-6">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4 items-center">
+                           <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(readinessItems).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(readinessItems).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Status</option>{[...new Set(readinessItems.map(r=>r.Status).filter(Boolean))].map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingReadiness({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Item</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border">
+                        <table className="w-full text-left border-separate border-spacing-0">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-[10px] uppercase text-slate-400 font-bold">
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Item / 項次</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Numbers / 數量</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">ETA / 預計到達</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Status / 狀態</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">PO / 採購單</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / 備註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-[11px]">
+                             {filteredReadiness.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
+                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-3 text-indigo-600 font-bold break-words border-b border-slate-100">{String(r.Category||'')}</td>
+                                 <td className="p-3 font-bold text-slate-700 break-words leading-tight border-b border-slate-100">{String(r.Item||'')}</td>
+                                 <td className="p-3 font-mono border-b border-slate-100">{String(r.Numbers||'')}</td>
+                                 <td className="p-3 font-mono text-slate-500 border-b border-slate-100">{String(r.ETA||'').replace('T00:00:00.000Z','')}</td>
+                                 <td className="p-3 text-center border-b border-slate-100"><span className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${String(r.Status||'').toUpperCase()==='ARRIVED'?'bg-green-100 text-green-700':String(r.Status||'').toUpperCase()==='PURCHASING'?'bg-yellow-100 text-yellow-700':'bg-slate-100 text-slate-600'}`}>{String(r.Status||'').toUpperCase()}</span></td>
+                                 <td className="p-3 font-mono text-slate-400 border-b border-slate-100">{String(r.PO||'')}</td>
+                                 <td className="p-3 text-slate-400 break-words leading-tight border-b border-slate-100">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
+                                   <div className="flex justify-center gap-2">
+                                     <button onClick={()=>setEditingReadiness(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
+                                     <button onClick={()=>deleteItem(r.id, 'readinessItems')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
+                                   </div>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredReadiness.length === 0 && <tr><td colSpan="10" className="text-center p-8 text-slate-400">No readiness records found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+
+                {activeTab === 'documents' && (
+                  <div className="space-y-6">
+                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between gap-4">
+                        <div className="flex gap-4 items-center">
+                           <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(documents).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(documents).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
+                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
+                        </div>
+                        {isAdmin && <button onClick={() => setEditingDocument({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Document</button>}
+                     </div>
+                     <div className="bg-white rounded-3xl shadow-sm border">
+                        <table className="w-full text-left border-separate border-spacing-0">
+                          <thead className="bg-slate-50 border-b">
+                             <tr className="text-[10px] uppercase text-slate-400 font-bold">
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Document Name / 文件名稱</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Link / 連結</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Remark / 備註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y text-[11px]">
+                             {filteredDocuments.map(r => (
+                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
+                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Project||'')}</td>
+                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
+                                 <td className="p-3 font-bold text-indigo-600 break-words leading-tight border-b border-slate-100">{String(r['Document name']||'')}</td>
+                                 <td className="p-3 border-b border-slate-100">{r.Link ? <a href={r.Link} target="_blank" className="text-blue-500 underline flex items-center gap-1 font-bold hover:text-indigo-600"><FileText size={12}/> Link</a> : ''}</td>
+                                 <td className="p-3 text-slate-400 break-words leading-tight border-b border-slate-100">{String(r.Remark||'')}</td>
+                                 {isAdmin && <td className="p-3 text-center border-b border-slate-100">
+                                   <div className="flex justify-center gap-2">
+                                     <button onClick={()=>setEditingDocument(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
+                                     <button onClick={()=>deleteItem(r.id, 'documents')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
+                                   </div>
+                                 </td>}
+                               </tr>
+                             ))}
+                             {filteredDocuments.length === 0 && <tr><td colSpan="6" className="text-center p-8 text-slate-400">No documents found.</td></tr>}
+                          </tbody>
+                        </table>
+                     </div>
+                  </div>
+                )}
+                 {activeTab === 'stats' && (
+                  <div className="space-y-8">
+                    <div className="flex flex-wrap items-center gap-4 bg-white p-6 rounded-3xl border shadow-sm mb-6">
+                       <div className="flex bg-slate-200 p-1 rounded-xl w-64 shadow-inner mr-4">
+                          <button onClick={()=>setStatsCalcMode('overall')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${statsCalcMode === 'overall' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}><LayoutList size={14} className="inline mr-2"/>Overall Sum</button>
+                          <button onClick={()=>setStatsCalcMode('category')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${statsCalcMode === 'category' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}><Layers size={14} className="inline mr-2"/>By Category</button>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filter:</span>
+                          {Object.entries({ Project: filterProject, Stage: filterStage, Build: filterBuild }).map(([dim, val]) => (
+                             <select key={dim} value={val} onChange={e => { if(dim==='Project')setFilterProject(e.target.value); if(dim==='Stage')setFilterStage(e.target.value); if(dim==='Build')setFilterBuild(e.target.value); }} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold text-slate-600">
+                                <option value="All">{dim}: All</option>
+                                {getDynamicOptions(records)[dim.toLowerCase()+'s']?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                             </select>
+                          ))}
+                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-slate-50 rounded-xl transition-colors ml-2" title="Reset Filters"><RotateCcw size={20}/></button>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {[...new Set(filteredRecords.map(r => `${r.Project} - ${r.Stage} - ${r.Build}`))].filter(Boolean).sort().map(key => {
+                        const projectRecords = filteredRecords.filter(r => `${r.Project} - ${r.Stage} - ${r.Build}` === key);
+                        const total = projectRecords.length;
+                        const totalForCalc = projectRecords.filter(r => r.Result !== 'N/A').length;
+                        if (total === 0) return null;
+                        const categories = [...new Set(projectRecords.map(r => r.Category))].filter(Boolean);
+                        
+                        return (
+                          <div key={key} className="bg-white rounded-[2.5rem] shadow-xl border overflow-hidden flex flex-col hover:shadow-2xl transition-all border-slate-200">
+                            {/* Dark Header */}
+                            <div className="bg-[#0f172a] p-8 text-white relative">
+                               <div className="flex justify-between items-start mb-6">
+                                  <div>
+                                     <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1 block">Insight</span>
+                                     <h4 className="text-2xl font-black tracking-tight">{key}</h4>
+                                  </div>
+                                  <div className="flex gap-2">
+                                     <button onClick={()=>setStatsCalcMode('category')} className={`p-2 rounded-xl transition-all ${statsCalcMode === 'category' ? 'bg-indigo-600 shadow-lg text-white' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}><Layers size={18}/></button>
+                                     <button onClick={()=>setStatsCalcMode('overall')} className={`p-2 rounded-xl transition-all ${statsCalcMode === 'overall' ? 'bg-indigo-600 shadow-lg text-white' : 'bg-slate-800 text-slate-500 hover:text-slate-300'}`}><LayoutList size={18}/></button>
+                                  </div>
+                               </div>
+                               <div className="flex items-baseline gap-2">
+                                  <span className="text-5xl font-black text-indigo-400 leading-none">{total}</span>
+                                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Items</span>
+                               </div>
+                            </div>
+
+                            <div className="p-8 flex-1 space-y-8">
+                               {statsCalcMode === 'category' ? (
+                                 categories.map(cat => {
+                                    const catRecs = projectRecords.filter(r => r.Category === cat);
+                                    const totalCat = catRecs.length;
+                                    const totalCatForCalc = catRecs.filter(r => r.Result !== 'N/A').length;
+                                    
+                                    const statusCounts = RESULTS.map(status => ({
+                                       status,
+                                       count: catRecs.filter(r => r.Result === status).length,
+                                       color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
+                                    })).filter(s => s.count > 0);
+
+                                    return (
+                                       <div key={cat} className="space-y-4">
+                                          <div className="flex justify-between items-center border-b pb-2">
+                                             <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide">{cat}</h5>
+                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{totalCat} Items</span>
+                                          </div>
+                                          
+                                          <div className="space-y-4 pt-2">
+                                             {statusCounts.map(s => {
+                                                const isNA = s.status === 'N/A';
+                                                const pct = (!isNA && totalCatForCalc > 0) ? ((s.count / totalCatForCalc) * 100).toFixed(1) : 0;
+                                                return (
+                                                   <div key={s.status} className="space-y-2">
+                                                      <div className="flex justify-between text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                                         <span>{s.status}</span>
+                                                         <span className={`text-${s.color}-600`}>{s.count} {isNA ? '(-%)' : `(${pct}%)`}</span>
+                                                      </div>
+                                                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                         <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${s.color}-500 h-full rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(var(--tw-shadow-color),0.4)]`} />
+                                                      </div>
+                                                   </div>
+                                                );
+                                             })}
+                                          </div>
+                                       </div>
+                                    );
+                                 })
+                               ) : (
+                                 <div className="space-y-6">
+                                    <div className="flex justify-between items-center border-b pb-2">
+                                       <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide">Total Summary</h5>
+                                    </div>
+                                    <div className="space-y-6 pt-4">
+                                       {(() => {
+                                          const statusCounts = RESULTS.map(status => ({
+                                             status,
+                                             count: projectRecords.filter(r => r.Result === status).length,
+                                             color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
+                                          })).filter(s => s.count > 0);
+
+                                          return statusCounts.map(s => {
+                                             const isNA = s.status === 'N/A';
+                                             const pct = (!isNA && totalForCalc > 0) ? ((s.count / totalForCalc) * 100).toFixed(1) : 0;
+                                             return (
+                                                <div key={s.status} className="space-y-2">
+                                                   <div className="flex justify-between text-[11px] font-black uppercase text-slate-500 tracking-wider">
+                                                      <span>{s.status}</span>
+                                                      <span className={`text-${s.color}-600 text-lg`}>{s.count} {isNA ? '(-%)' : `(${pct}%)`}</span>
+                                                   </div>
+                                                   <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                                      <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${s.color}-500 h-full rounded-full transition-all duration-1000`} />
+                                                   </div>
+                                                </div>
+                                             );
+                                          });
+                                       })()}
+                                    </div>
+                                 </div>
+                               )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'inventory' && (
+                  <div className="space-y-8">
+                    <div className="flex flex-wrap items-center gap-4 bg-white p-6 rounded-3xl border shadow-sm mb-6">
+                       <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                          <div className="flex bg-slate-200 p-1 rounded-xl flex-1 md:w-64 shadow-inner">
+                             <button onClick={()=>setInventoryGroupBy('keeper')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${inventoryGroupBy === 'keeper' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>By Keeper</button>
+                             <button onClick={()=>setInventoryGroupBy('stagebuild')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${inventoryGroupBy === 'stagebuild' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>By Stage-Build</button>
+                          </div>
+                          <div className="flex bg-indigo-50 p-1 rounded-xl flex-1 md:w-64 shadow-inner border border-indigo-100">
+                             <button onClick={()=>setInventorySubView('detail')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${inventorySubView === 'detail' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>Show Detail</button>
+                             <button onClick={()=>setInventorySubView('config')} className={`flex-1 py-3 text-[10px] font-black uppercase rounded-lg transition-all ${inventorySubView === 'config' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>By Config</button>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filter:</span>
+                          {Object.entries({ Project: filterProject, Stage: filterStage, Build: filterBuild }).map(([dim, val]) => (
+                             <select key={dim} value={val} onChange={e => { if(dim==='Project')setFilterProject(e.target.value); if(dim==='Stage')setFilterStage(e.target.value); if(dim==='Build')setFilterBuild(e.target.value); }} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold text-slate-600">
+                                <option value="All">{dim}: All</option>
+                                {getDynamicOptions(samples)[dim.toLowerCase()+'s']?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                             </select>
+                          ))}
+                          <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-slate-50 rounded-xl transition-colors ml-2" title="Reset Filters"><RotateCcw size={20}/></button>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {(inventoryGroupBy === 'keeper' 
+                        ? [...new Set(filteredSamples.map(s => s.Keeper))].filter(Boolean).map(key => ({ key, list: filteredSamples.filter(s => s.Keeper === key), label: 'Keeper' }))
+                        : [...new Set(filteredSamples.map(s => `${s.Project} - ${s.Stage} - ${s.Build}`))].filter(Boolean).sort().map(key => ({ key, list: filteredSamples.filter(s => `${s.Project} - ${s.Stage} - ${s.Build}` === key), label: 'Stage-Build' }))
+                      ).map(group => {
+                          if (group.list.length === 0) return null;
+                          // Aggregate the opposite dimension
+                          // Aggregate the internal dimension
+                          const otherDimensionCounts = group.list.reduce((acc, s) => {
+                             let otherKey;
+                             if (inventorySubView === 'config') {
+                                otherKey = s.Config || 'Unknown';
+                             } else {
+                                otherKey = inventoryGroupBy === 'keeper' ? `${s.Project} - ${s.Stage} - ${s.Build}` : s.Keeper;
+                             }
+                             acc[otherKey] = (acc[otherKey] || 0) + 1;
+                             return acc;
+                          }, {});
+
+                          return (
+                            <div key={group.key} className="bg-white rounded-3xl shadow-xl border overflow-hidden flex flex-col hover:shadow-2xl transition-all">
+                              <div className="bg-[#0f172a] p-6 text-white flex items-center justify-between">
+                                 <div className="min-w-0 pr-4">
+                                    <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">{group.label}</span>
+                                    <h4 className="text-sm font-black break-words leading-tight">{group.key}</h4>
+                                 </div>
+                                 <div className="bg-indigo-600 px-4 py-2 rounded-2xl shrink-0">
+                                    <span className="text-xl font-black">{group.list.length}</span>
+                                    <span className="text-[9px] ml-1 uppercase font-bold opacity-60">台</span>
+                                 </div>
+                              </div>
+                              
+                              <div className="p-6 space-y-3 bg-slate-50 flex-1">
+                                 {Object.entries(otherDimensionCounts).map(([subKey, count]) => (
+                                   <div key={subKey} onClick={() => {
+                                       if (inventorySubView === 'config') { setFilterConfig(subKey); }
+                                       else if (inventoryGroupBy === 'keeper') { const [p, st, b] = subKey.split(' - '); setFilterProject(p); setFilterStage(st); setFilterBuild(b); }
+                                       else { setFilterKeeper(subKey); }
+                                       setActiveTab('tracking');
+                                   }} className="flex justify-between items-center bg-white p-4 rounded-2xl border shadow-sm group hover:border-indigo-500 transition-all cursor-pointer">
+                                      <div className="flex items-center gap-3">
+                                         <div className="w-1.5 h-10 bg-indigo-100 rounded-full group-hover:bg-indigo-600 transition-colors"></div>
+                                         <span className="text-[11px] font-black text-slate-800 break-words leading-tight max-w-[200px]">{subKey}</span>
+                                      </div>
+                                      <div className="flex flex-col items-end">
+                                         <span className="text-lg font-black text-indigo-600 leading-none">{count}</span>
+                                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Units</span>
+                                      </div>
+                                   </div>
+                                 ))}
+                              </div>
+                              
+                              <div className="px-6 py-4 bg-white border-t">
+                                 <button onClick={() => { 
+                                    setFilterConfig('All');
+                                    if (inventoryGroupBy === 'keeper') { setFilterKeeper(group.key); }
+                                    else { const [p, st, b] = group.key.split(' - '); setFilterProject(p); setFilterStage(st); setFilterBuild(b); }
+                                    setActiveTab('tracking'); 
+                                 }} className="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white transition-all rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">
+                                    Deep Track Data
+                                 </button>
+                              </div>
+                            </div>
+                          );
+                      })}
+                    </div>
+                  </div>
+                )}
+                </>
               )}
-            </section>
+               </div>
+            </div>
           </main>
 
-          {editingItem && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 relative animate-in zoom-in-95 duration-300 border border-indigo-100">
-                 <button onClick={()=>setEditingItem(null)} className="absolute top-8 right-8 p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"><Icons.X size={20}/></button>
-                 <h3 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tighter">Edit {editType}</h3>
-                 <form onSubmit={(e)=>{e.preventDefault(); 
-                    const setter = editType==='records'?setRecords:editType==='samples'?setSamples:editType==='configs'?setConfigsList:editType==='readiness'?setReadinessItems:setDocuments;
-                    updateItem(editingItem, editType, setter); setEditingItem(null);
-                 }} className="grid grid-cols-2 gap-6">
-                    {editType==='records' && (
-                       <>
-                        <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project</label><input required value={editingItem.Project||''} onChange={e=>setEditingItem({...editingItem, Project:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl font-black text-sm" /></div>
-                        <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stage</label><input required value={editingItem.Stage||''} onChange={e=>setEditingItem({...editingItem, Stage:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl font-black text-sm" /></div>
-                        <div className="col-span-2 space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label><input required value={editingItem.Category||''} onChange={e=>setEditingItem({...editingItem, Category:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl font-black text-sm" /></div>
-                        <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Config</label><input value={editingItem.Config||''} onChange={e=>setEditingItem({...editingItem, Config:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl font-mono text-sm" /></div>
-                        <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Result</label><select value={editingItem.Result||'Pass'} onChange={e=>setEditingItem({...editingItem, Result:e.target.value})} className="w-full p-4 bg-slate-50 border rounded-2xl font-black text-sm">{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
-                       </>
-                    )}
-                    <div className="col-span-2 pt-6"><button type="submit" className="w-full py-5 bg-indigo-600 hover:bg-slate-900 text-white rounded-3xl font-black shadow-xl shadow-indigo-100 transition-all uppercase tracking-[0.2em] text-xs">Save Changes / 儲存</button></div>
+          {editingRecord && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingRecord.Project ? 'Edit Record' : 'New Record'}</h3><button type="button" onClick={()=>setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('record', editingRecord)}} className="grid grid-cols-4 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Project<input value={editingRecord.Project||''} onChange={e=>setEditingRecord({...editingRecord, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Stage<input list="stage-options" value={editingRecord.Stage||''} onChange={e=>setEditingRecord({...editingRecord, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Build<input value={editingRecord.Build||''} onChange={e=>setEditingRecord({...editingRecord, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Config<input value={editingRecord.Config||''} onChange={e=>setEditingRecord({...editingRecord, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Category<input value={editingRecord.Category||''} onChange={e=>setEditingRecord({...editingRecord, Category:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Test item<input value={editingRecord['Test item']||''} onChange={e=>setEditingRecord({...editingRecord, 'Test item':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Q'ty<input type="number" value={editingRecord["Q'ty"]||''} onChange={e=>setEditingRecord({...editingRecord, "Q'ty":e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Start Date<input type="date" value={editingRecord.Start||''} onChange={e=>setEditingRecord({...editingRecord, Start:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">End Date<input type="date" value={editingRecord.End||''} onChange={e=>setEditingRecord({...editingRecord, End:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Result<select value={editingRecord.Result||''} onChange={e=>setEditingRecord({...editingRecord, Result:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"><option value=""></option>{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+                    <div className="col-span-1 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Report Link<input value={editingRecord.Report||''} onChange={e=>setEditingRecord({...editingRecord, Report:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
+                    <div className="col-span-4 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Remark<input value={editingRecord.Remark||''} onChange={e=>setEditingRecord({...editingRecord, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-4 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Record</button></div>
+                 </form>
+              </div>
+            </div>
+          )}
+
+          {editingSample && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingSample.Project ? 'Edit Sample' : 'New Sample'}</h3><button type="button" onClick={()=>setEditingSample(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('sample', editingSample)}} className="grid grid-cols-4 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Project<input value={editingSample.Project||''} onChange={e=>setEditingSample({...editingSample, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Stage<input value={editingSample.Stage||''} onChange={e=>setEditingSample({...editingSample, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Build<input value={editingSample.Build||''} onChange={e=>setEditingSample({...editingSample, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Config<input value={editingSample.Config||''} onChange={e=>setEditingSample({...editingSample, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DUT ID<input value={editingSample['DUT ID']||''} onChange={e=>setEditingSample({...editingSample, 'DUT ID':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">SN<input value={editingSample.SN||''} onChange={e=>setEditingSample({...editingSample, SN:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">Keeper<input value={editingSample.Keeper||''} onChange={e=>setEditingSample({...editingSample, Keeper:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM1<input value={editingSample.item1||''} onChange={e=>setEditingSample({...editingSample, item1:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM2<input value={editingSample.item2||''} onChange={e=>setEditingSample({...editingSample, item2:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-rose-500 uppercase tracking-widest text-[9px]">FAILURE<input value={editingSample.Failure||''} onChange={e=>setEditingSample({...editingSample, Failure:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-rose-50 border border-rose-200 rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">FA REPORT LINK<input value={editingSample['FA report']||''} onChange={e=>setEditingSample({...editingSample, 'FA report':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
+                    <div className="col-span-4 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingSample.Remark||''} onChange={e=>setEditingSample({...editingSample, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-4 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Sample</button></div>
+                 </form>
+              </div>
+            </div>
+          )}
+
+          {editingConfig && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-3xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingConfig.Project ? 'Edit Config' : 'New Config'}</h3><button type="button" onClick={()=>setEditingConfig(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('config', editingConfig)}} className="grid grid-cols-2 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingConfig.Project||''} onChange={e=>setEditingConfig({...editingConfig, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingConfig.Stage||''} onChange={e=>setEditingConfig({...editingConfig, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">BUILD<input value={editingConfig.Build||''} onChange={e=>setEditingConfig({...editingConfig, Build:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">CONFIG<input value={editingConfig.Config||''} onChange={e=>setEditingConfig({...editingConfig, Config:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">SIZE<input value={editingConfig.Size||''} onChange={e=>setEditingConfig({...editingConfig, Size:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DESCRIPTION<input value={editingConfig.Description||''} onChange={e=>setEditingConfig({...editingConfig, Description:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingConfig.Remark||''} onChange={e=>setEditingConfig({...editingConfig, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Config</button></div>
+                 </form>
+              </div>
+            </div>
+          )}
+
+          {editingReadiness && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-4xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingReadiness.Project ? 'Edit Readiness' : 'New Item'}</h3><button type="button" onClick={()=>setEditingReadiness(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('readiness', editingReadiness)}} className="grid grid-cols-3 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingReadiness.Project||''} onChange={e=>setEditingReadiness({...editingReadiness, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingReadiness.Stage||''} onChange={e=>setEditingReadiness({...editingReadiness, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">CATEGORY<input value={editingReadiness.Category||''} onChange={e=>setEditingReadiness({...editingReadiness, Category:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ITEM<input value={editingReadiness.Item||''} onChange={e=>setEditingReadiness({...editingReadiness, Item:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">NUMBERS<input type="number" value={editingReadiness.Numbers||''} onChange={e=>setEditingReadiness({...editingReadiness, Numbers:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">ETA<input type="date" value={editingReadiness.ETA||''} onChange={e=>setEditingReadiness({...editingReadiness, ETA:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STATUS<select value={editingReadiness.Status||''} onChange={e=>setEditingReadiness({...editingReadiness, Status:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"><option value=""></option><option value="PURCHASING">PURCHASING</option><option value="NOT START">NOT START</option><option value="ARRIVED">ARRIVED</option></select></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PO<input value={editingReadiness.PO||''} onChange={e=>setEditingReadiness({...editingReadiness, PO:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-3 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingReadiness.Remark||''} onChange={e=>setEditingReadiness({...editingReadiness, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-3 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Item</button></div>
+                 </form>
+              </div>
+            </div>
+          )}
+
+          {editingDocument && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2rem] w-full max-w-3xl p-10 space-y-6 animate-in zoom-in-95 shadow-2xl border max-h-[90vh] overflow-y-auto">
+                 <div className="flex justify-between items-center border-b pb-4"><h3 className="text-xl font-black uppercase text-indigo-600">{editingDocument.Project ? 'Edit Document' : 'New Document'}</h3><button type="button" onClick={()=>setEditingDocument(null)} className="p-2 hover:bg-slate-100 rounded-full"><X/></button></div>
+                 <form onSubmit={e=>{e.preventDefault(); handleUpdate('document', editingDocument)}} className="grid grid-cols-2 gap-6 text-[11px] font-bold">
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">PROJECT<input value={editingDocument.Project||''} onChange={e=>setEditingDocument({...editingDocument, Project:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">STAGE<input value={editingDocument.Stage||''} onChange={e=>setEditingDocument({...editingDocument, Stage:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">DOCUMENT NAME<input value={editingDocument['Document name']||''} onChange={e=>setEditingDocument({...editingDocument, 'Document name':e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">LINK<input value={editingDocument.Link||''} onChange={e=>setEditingDocument({...editingDocument, Link:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl" placeholder="https://..."/></div>
+                    <div className="col-span-2 space-y-1 text-slate-500 uppercase tracking-widest text-[9px]">REMARK<input value={editingDocument.Remark||''} onChange={e=>setEditingDocument({...editingDocument, Remark:e.target.value})} className="w-full text-sm font-medium text-slate-800 p-3 bg-slate-50 border rounded-xl"/></div>
+                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Document</button></div>
                  </form>
               </div>
             </div>
