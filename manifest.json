@@ -1,0 +1,16 @@
+{
+  "name": "REL PORTAL",
+  "short_name": "REL Portal",
+  "description": "REL Laboratory Management System - Local-first & Privacy-focused.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/isometric/512/laboratory.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

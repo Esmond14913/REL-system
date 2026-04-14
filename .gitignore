@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Excel Backups (Important for privacy)
+HQA_Master_*.xlsx
+!HQA_Template.xlsx
+
+# Developer Logs
+*.txt
+*.ps1
+*.py
+build_index*
+test_lucide.js
+v[0-9].txt
+v[0-9][0-9].txt
