@@ -15,7 +15,9 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js"></script>
+  <!-- 使用更穩定的 Lucide 版本 -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.min.js"></script>
   <style>
     #compatibility-overlay { display: none; position: fixed; inset: 0; background: #fff; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; font-family: sans-serif; }
     #compatibility-overlay.active { display: flex; }
@@ -23,7 +25,7 @@
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-  </script>
+  </style>
   <script>
     window.react = window.React;
     if ('serviceWorker' in navigator) {
@@ -53,13 +55,22 @@
 
   <script type="text/babel" data-type="module">
     const { useState, useEffect, useMemo, useRef } = React;
+    
+    // 徹底解決圖示加載失敗問題
+    const Lucide = window.LucideReact || window.lucide || {};
     const { 
-      Table, PlusCircle, Trash2, Search, Lock,
-      X, Pencil, ChevronLeft, ChevronRight, Box, ClipboardList, 
+      PlusCircle, Trash2, Search, Lock, X, Pencil, Box, ClipboardList, 
       Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
       FolderSearch, AlertCircle, FolderLock, Package,
-      CheckCircle, FileText, Layers, LayoutList, RotateCcw
-    } = window.LucideReact;
+      CheckCircle, FileText, Layers, LayoutList, RotateCcw,
+      ChevronLeft, ChevronRight
+    } = Lucide;
+
+    // 建立防錯組件，避免因圖示缺失而崩潰
+    const Icon = ({ name: IconComp, size = 18, className = "" }) => {
+      if (!IconComp) return <span className={className}>[Icon]</span>;
+      return <IconComp size={size} className={className} />;
+    };
 
     const DB_NAME = 'HQA_LocalDB';
     const STORE_NAME = 'handles';
@@ -94,8 +105,10 @@
     async function verifyPermission(fileHandle, withWrite) {
       const opts = {};
       if (withWrite) { opts.mode = 'readwrite'; }
-      if ((await fileHandle.queryPermission(opts)) === 'granted') { return true; }
-      if ((await fileHandle.requestPermission(opts)) === 'granted') { return true; }
+      try {
+        if ((await fileHandle.queryPermission(opts)) === 'granted') { return true; }
+        if ((await fileHandle.requestPermission(opts)) === 'granted') { return true; }
+      } catch (e) { return false; }
       return false;
     }
 
@@ -114,8 +127,8 @@
 
     const SidebarLabel = ({ en, zh }) => (
       <span className="flex flex-col items-start justify-center leading-none text-left pointer-events-none">
-        <span className="text-[9px] font-black uppercase tracking-tighter opacity-50 mb-1 block">{String(en)}</span>
-        <span className="text-[14px] font-bold tracking-tight whitespace-nowrap block">{String(zh)}</span>
+        <span className="text-[9px] font-black uppercase tracking-tighter opacity-50 mb-1 block">{en}</span>
+        <span className="text-[14px] font-bold tracking-tight whitespace-nowrap block">{zh}</span>
       </span>
     );
 
@@ -167,31 +180,10 @@
               await loadAndCleanupExcelData(storedHandle, retentionDays);
               setActiveTab('records');
             }
-          } catch (err) { console.warn('Silent local handle restore failed:', err); }
+          } catch (err) { }
         };
         initLocalFS();
       }, []);
-
-      useEffect(() => { localStorage.setItem('retention_days', retentionDays.toString()); }, [retentionDays]);
-
-      const autoCleanup = async (handle, rDays) => {
-        if (!handle) return;
-        try {
-          const thresholdDate = dayjs().subtract(rDays, 'day');
-          for await (const entry of handle.values()) {
-            if (entry.kind === 'file' && entry.name.startsWith('HQA_Master_') && entry.name.endsWith('.xlsx')) {
-               const dateStr = entry.name.replace('HQA_Master_', '').replace('.xlsx', '');
-               if (dateStr.length === 8) {
-                  const fileDate = dayjs(`${dateStr.substring(0,4)}-${dateStr.substring(4,6)}-${dateStr.substring(6,8)}`);
-                  if (fileDate.isValid() && fileDate.isBefore(thresholdDate, 'day')) {
-                     await handle.removeEntry(entry.name);
-                     console.log(`Auto Cleanup: Deleted old backup ${entry.name}`);
-                  }
-               }
-            }
-          }
-        } catch(err) { console.error('Cleanup failed:', err); }
-      };
 
       const loadAndCleanupExcelData = async (handle, rDays) => {
         try {
@@ -206,18 +198,15 @@
              }
           }
           if (!latestFileHandle) {
-             setMessage('No existing Excel found. A new one will be created upon first save.');
-             setRecords([]); setSamples([]); setConfigsList([]); setReadinessItems([]); setDocuments([]);
-             return;
+             setMessage('No Project File.'); setRecords([]); setSamples([]); setConfigsList([]); return;
           }
-          setMessage(`Loading ${latestFileHandle.name}...`);
           const file = await latestFileHandle.getFile();
           const buffer = await file.arrayBuffer();
           const wb = XLSX.read(buffer, { type: 'array' });
           const getSheetData = (name) => {
              const sheet = wb.Sheets[name];
              if (!sheet) return [];
-             return XLSX.utils.sheet_to_json(sheet, { raw: false, dateNF: "yyyy-mm-dd" }).map(row => ({ id: generateId(), ...row }));
+             return XLSX.utils.sheet_to_json(sheet, { raw: false }).map(row => ({ id: generateId(), ...row }));
           };
           setRecords(getSheetData('Records'));
           setSamples(getSheetData('Tracking'));
@@ -225,13 +214,11 @@
           setReadinessItems(getSheetData('Readiness'));
           setDocuments(getSheetData('Documents'));
           setMessage('Ready.');
-          autoCleanup(handle, rDays);
-        } catch(err) { console.error('Load Excel failed:', err); setMessage('Error loading Excel.'); }
+        } catch(err) { setMessage('Load Error.'); }
       };
 
       const saveToExcel = async (payload) => {
         if (!dirHandle) return;
-        setMessage('Saving...');
         try {
           const today = dayjs().format('YYYYMMDD');
           const fileName = `HQA_Master_${today}.xlsx`;
@@ -247,9 +234,8 @@
           const writable = await fileHandle.createWritable();
           await writable.write(wbout);
           await writable.close();
-          setMessage(`Saved to ${fileName}`);
-          setTimeout(()=>setMessage('Ready.'), 3000);
-        } catch(err) { console.error('Save failed:', err); setMessage('Failed to save file.'); }
+          setMessage('Saved.');
+        } catch(err) { setMessage('Save Failed.'); }
       };
 
       const connectDirectory = async () => {
@@ -259,7 +245,7 @@
           setDirHandle(handle);
           await loadAndCleanupExcelData(handle, retentionDays);
           setActiveTab('records');
-        } catch (err) { console.warn('Directory selection cancelled'); }
+        } catch (err) { }
       };
 
       const deleteItem = (id, listKey) => {
@@ -291,13 +277,15 @@
       const [editingDocument, setEditingDocument] = useState(null);
 
       return (
-        <div className="flex h-screen overflow-hidden bg-slate-50 font-sans antialiased text-slate-900 border-indigo-100">
+        <div className="flex h-screen overflow-hidden bg-slate-50 font-sans antialiased text-slate-900">
           <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-50">
             <div className="p-6 border-b border-slate-100 bg-white">
               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-indigo-200 shadow-lg"><Layers size={22}/></div>
+                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                   <Icon name={Layers} size={22} />
+                 </div>
                  <div className="flex flex-col">
-                    <span className="text-xs font-black text-slate-400 tracking-[0.2em]">PORTAL</span>
+                    <span className="text-xs font-black text-slate-400 tracking-widest uppercase">Portal</span>
                     <span className="text-xl font-black text-indigo-900 leading-tight">REL PORTAL</span>
                  </div>
               </div>
@@ -313,14 +301,18 @@
                 { id: 'inventory', zh: '庫存儀表', en: 'INVENTORY', icon: LayoutList }
               ].map(tab => (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full group flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 ${activeTab === tab.id ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 scale-[1.02]' : 'text-slate-500 hover:bg-slate-50 hover:text-indigo-600'}`}>
-                  <tab.icon size={22} className={activeTab === tab.id ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600'} />
+                  <Icon name={tab.icon} size={22} className={activeTab === tab.id ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600'} />
                   <SidebarLabel en={tab.en} zh={tab.zh} />
                 </button>
               ))}
             </nav>
             <div className="p-4 border-t border-slate-100 space-y-2">
-               <button onClick={() => setIsAdmin(!isAdmin)} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${isAdmin ? 'bg-indigo-50 text-indigo-700' : 'text-slate-400 hover:bg-slate-50'}`}><Lock size={16}/> <span className="text-xs font-bold uppercase tracking-wider">{isAdmin ? 'Admin: Active' : 'Admin: Restricted'}</span></button>
-               <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-400 hover:bg-slate-50'}`}><Settings size={16}/> <span className="text-xs font-bold uppercase tracking-wider text-left">Settings / 系統設定</span></button>
+               <button onClick={() => setIsAdmin(!isAdmin)} className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400 hover:bg-slate-50">
+                 <Icon name={Lock} size={16} /> <span className="text-xs font-bold uppercase tracking-wider">{isAdmin ? 'Admin: Active' : 'Admin: Restricted'}</span>
+               </button>
+               <button onClick={() => setActiveTab('settings')} className="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400 hover:bg-slate-50 font-bold uppercase tracking-wider text-xs">
+                 <Icon name={Settings} size={16} /> Settings
+               </button>
             </div>
           </aside>
 
@@ -329,56 +321,45 @@
               <div className="flex items-center gap-4">
                  <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">{activeTab}</h2>
                  <div className="h-4 w-[1px] bg-slate-200"></div>
-                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{message}</span>
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">{message}</span>
               </div>
               <div className="relative">
-                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
-                 <input type="text" placeholder="Quick Search..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} className="bg-slate-100 border-none rounded-2xl py-2 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-indigo-500 transition-all font-medium" />
+                 <Icon name={Search} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
+                 <input type="text" placeholder="Quick Search..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} className="bg-slate-100 border-none rounded-2xl py-2 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-indigo-500 transition-all" />
               </div>
             </header>
 
             <section className="flex-1 p-8 space-y-6">
                 {!dirHandle && activeTab !== 'settings' && (
                   <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
-                    <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center text-indigo-600 shadow-inner"><FolderLock size={40}/></div>
-                    <div className="space-y-2">
-                       <h3 className="text-2xl font-black text-slate-800">No Project Connected</h3>
-                       <p className="text-slate-400 max-w-sm mx-auto font-medium leading-relaxed">Please connect to a project folder in the settings to start managing records and tracking samples.</p>
+                    <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center text-indigo-600 shadow-inner">
+                      <Icon name={FolderLock} size={40} />
                     </div>
-                    <button onClick={() => setActiveTab('settings')} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-slate-800 transition-all flex items-center gap-2">Go to Settings <ChevronRight size={18}/></button>
+                    <div className="space-y-2">
+                       <h3 className="text-2xl font-black text-slate-800 uppercase">No Project Connected</h3>
+                       <p className="text-slate-400 max-w-sm mx-auto font-medium">Please connect to a project folder in settings to start.</p>
+                    </div>
+                    <button onClick={() => setActiveTab('settings')} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-slate-800 transition-all flex items-center gap-2 uppercase tracking-wide">Go to Settings <Icon name={ChevronRight} size={18}/></button>
                   </div>
                 )}
 
                 {activeTab === 'settings' && (
-                  <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="max-w-4xl mx-auto space-y-8">
                      <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-100/50 space-y-8">
                         <div className="flex flex-col gap-2">
                            <h2 className="text-3xl font-black text-slate-900 tracking-tight">System Configuration</h2>
-                           <p className="text-slate-400 font-medium">Manage your local storage, project connections, and data retention policies.</p>
+                           <p className="text-slate-400 font-medium tracking-wide">Manage connections and data policies.</p>
                         </div>
                         <div className="grid gap-6">
                            <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 flex items-center justify-between">
                               <div className="flex gap-4 items-center">
-                                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-indigo-600"><FolderSearch size={24}/></div>
+                                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-indigo-600"><Icon name={FolderSearch} size={24}/></div>
                                  <div className="flex flex-col">
                                     <span className="text-sm font-black text-slate-800 uppercase tracking-wide">Project Connection / 專案連線</span>
                                     <span className="text-xs font-semibold text-slate-400">{dirHandle ? `Connected: ${dirHandle.name}` : 'No folder selected'}</span>
                                  </div>
                               </div>
                               <button onClick={connectDirectory} className="bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white px-6 py-2 rounded-xl font-bold transition-all shadow-sm">Connect Folder</button>
-                           </div>
-                           <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 space-y-4">
-                              <div className="flex gap-4 items-center">
-                                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-indigo-600"><RefreshCw size={24}/></div>
-                                 <div className="flex flex-col">
-                                    <span className="text-sm font-black text-slate-800 uppercase tracking-wide">Auto Backup Retention / 自動備份清理</span>
-                                    <span className="text-xs font-semibold text-slate-400">Specify how many days to keep "HQA_Master_..." files.</span>
-                                 </div>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                 <input type="range" min="1" max="90" value={retentionDays} onChange={e=>setRetentionDays(parseInt(e.target.value))} className="flex-1 accent-indigo-600" />
-                                 <span className="bg-indigo-600 text-white px-4 py-1 rounded-full font-black text-sm">{retentionDays} Days</span>
-                              </div>
                            </div>
                         </div>
                      </div>
@@ -391,38 +372,34 @@
                         <div className="flex flex-wrap gap-4 items-center">
                            <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(records).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
                            <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(records).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(records).configs.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <select value={filterResult} onChange={e=>setFilterResult(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Results</option>{RESULTS.map(r=><option key={r} value={r}>{r}</option>)}</select>
-                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors" title="Reset Filters"><RotateCcw size={20}/></button>
+                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"><Icon name={RotateCcw} size={20}/></button>
                         </div>
-                        {isAdmin && <button onClick={() => setEditingRecord({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Record</button>}
+                        {isAdmin && <button onClick={() => setEditingRecord({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors uppercase text-sm tracking-wide"><Icon name={PlusCircle} size={18}/> New Record</button>}
                      </div>
                      <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Result / 結果</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Date / 日期</th>
-                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                                <th className="p-4 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
+                                <th className="p-4 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                                <th className="p-4 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
+                                <th className="p-4 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Result / 結果</th>
+                                <th className="p-4 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Date / 日期</th>
+                                {isAdmin && <th className="p-4 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
                              {filteredRecords.map(r => (
                                <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                 <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
-                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
-                                 <td className="p-3 font-bold text-indigo-600 uppercase border-b border-slate-100">{String(r.Category||'')}</td>
-                                 <td className="p-3 font-mono border-b border-slate-100">{String(r.Config||'')}</td>
-                                 <td className="p-3 border-b border-slate-100"><span className={`px-3 py-1 rounded-full font-bold uppercase tracking-widest text-[10px] ${getResultStyle(r.Result)}`}>{String(r.Result||'')}</span></td>
-                                 <td className="p-3 text-slate-400 border-b border-slate-100">{String(r.Date||'').replace('T00:00:00.000Z','')}</td>
-                                 {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
+                                 <td className="p-4 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{r.Project}</td>
+                                 <td className="p-4 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] font-black uppercase ${getStageStyle(r.Stage)}`}>{r.Stage}</span></td>
+                                 <td className="p-4 font-bold text-indigo-600 uppercase border-b border-slate-100">{r.Category}</td>
+                                 <td className="p-4 border-b border-slate-100"><span className={`px-3 py-1 rounded-full font-bold uppercase tracking-widest text-[10px] ${getResultStyle(r.Result)}`}>{r.Result}</span></td>
+                                 <td className="p-4 text-slate-400 border-b border-slate-100">{r.Date}</td>
+                                 {isAdmin && <td className="p-4 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
                                    <div className="flex justify-center gap-2">
-                                     <button onClick={()=>setEditingRecord(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
-                                     <button onClick={()=>deleteItem(r.id, 'records')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
+                                     <button onClick={()=>setEditingRecord(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Icon name={Pencil} size={14}/></button>
+                                     <button onClick={()=>deleteItem(r.id, 'records')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Icon name={Trash2} size={14}/></button>
                                    </div>
                                  </td>}
                                </tr>
@@ -438,41 +415,34 @@
                      <div className="bg-white p-6 rounded-3xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
                         <div className="flex flex-wrap gap-4 items-center">
                            <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(samples).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(samples).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <select value={filterConfig} onChange={e=>setFilterConfig(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Configs</option>{getDynamicOptions(samples).configs.map(c=><option key={c} value={c}>{c}</option>)}</select>
-                           <select value={filterKeeper} onChange={e=>setFilterKeeper(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Keepers / 全部位子</option>{getDynamicOptions(samples).keepers.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"><RotateCcw size={20}/></button>
+                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"><Icon name={RotateCcw} size={20}/></button>
                         </div>
-                        {isAdmin && <button onClick={() => setEditingSample({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Sample</button>}
+                        {isAdmin && <button onClick={() => setEditingSample({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors text-sm uppercase"><Icon name={PlusCircle} size={18}/> New Sample</button>}
                      </div>
                      <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Sample ID / 樣品編號</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / 批次</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 位子</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Units / 數量</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                               <th className="p-4 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Sample ID / 樣品編號</th>
+                               <th className="p-4 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Project / 專案</th>
+                               <th className="p-4 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                               <th className="p-4 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 位子</th>
+                               <th className="p-4 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Units / 數量</th>
+                               {isAdmin && <th className="p-4 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
                              {filteredSamples.map(r => (
                                <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                 <td className="p-3 font-mono font-bold text-indigo-600 sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r['Sample ID']||'')}</td>
-                                 <td className="p-3 font-bold border-b border-slate-100">{String(r.Project||'')}</td>
-                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
-                                 <td className="p-3 font-bold uppercase border-b border-slate-100">{String(r.Build||'')}</td>
-                                 <td className="p-3 font-mono border-b border-slate-100">{String(r.Config||'')}</td>
-                                 <td className="p-3 font-bold text-slate-700 border-b border-slate-100">{String(r.Keeper||'')}</td>
-                                 <td className="p-3 font-bold text-slate-700 border-b border-slate-100">{String(r.Units||'1')}</td>
-                                 {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
+                                 <td className="p-4 font-mono font-bold text-indigo-600 sticky left-0 bg-white z-10 border-b border-r border-slate-100">{r['Sample ID']}</td>
+                                 <td className="p-4 font-bold border-b border-slate-100">{r.Project}</td>
+                                 <td className="p-4 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] uppercase font-black ${getStageStyle(r.Stage)}`}>{r.Stage}</span></td>
+                                 <td className="p-4 font-bold text-slate-700 border-b border-slate-100">{r.Keeper}</td>
+                                 <td className="p-4 font-bold text-slate-700 border-b border-slate-100">{r.Units || '1'}</td>
+                                 {isAdmin && <td className="p-4 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
                                    <div className="flex justify-center gap-2">
-                                     <button onClick={()=>setEditingSample(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
-                                     <button onClick={()=>deleteItem(r.id, 'samples')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
+                                     <button onClick={()=>setEditingSample(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Icon name={Pencil} size={14}/></button>
+                                     <button onClick={()=>deleteItem(r.id, 'samples')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Icon name={Trash2} size={14}/></button>
                                    </div>
                                  </td>}
                                </tr>
@@ -487,78 +457,21 @@
                   <div className="space-y-6">
                      <div className="bg-white p-6 rounded-3xl shadow-sm border flex items-center justify-between">
                         <h3 className="font-black text-slate-800 uppercase tracking-widest text-sm underline decoration-indigo-200 underline-offset-4">Config Recipes / 機台配置清單</h3>
-                        {isAdmin && <button onClick={() => setEditingConfig({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Config</button>}
+                        {isAdmin && <button onClick={() => setEditingConfig({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors uppercase text-sm"><Icon name={PlusCircle} size={18}/> New Config</button>}
                      </div>
                      <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
                         <table className="w-full text-left border-separate border-spacing-0">
-                          <thead className="bg-slate-50 border-b">
-                             <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Stage / 階段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config Name / 配置名稱</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[50%]">Description / 詳細說明</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
-                             </tr>
+                          <thead className="bg-slate-50 border-b text-[10px] uppercase text-slate-400 font-bold">
+                             <tr><th className="p-4 border-r">Stage</th><th className="p-4">Config Name</th><th className="p-4 w-[60%]">Description</th>{isAdmin && <th className="p-4 text-center">Action</th>}</tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
                              {configsList.map(r => (
-                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                 <td className="p-3 sticky left-0 bg-white z-10 border-b border-r border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
-                                 <td className="p-3 font-mono font-bold text-indigo-600 border-b border-slate-100">{String(r.Config||'')}</td>
-                                 <td className="p-3 text-slate-500 break-words leading-relaxed border-b border-slate-100">{String(r.Description||'')}</td>
-                                 {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
-                                   <div className="flex justify-center gap-2">
-                                     <button onClick={()=>setEditingConfig(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
-                                     <button onClick={()=>deleteItem(r.id, 'configsList')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
-                                   </div>
-                                 </td>}
-                               </tr>
-                             ))}
-                          </tbody>
-                        </table>
-                     </div>
-                  </div>
-                )}
-
-                {activeTab === 'readiness' && (
-                  <div className="space-y-6">
-                     <div className="bg-white p-6 rounded-3xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex flex-wrap gap-4 items-center">
-                           <select value={filterProject} onChange={e=>setFilterProject(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Projects</option>{getDynamicOptions(readinessItems).projects.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Stages</option>{getDynamicOptions(readinessItems).stages.map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="p-2 border rounded-xl bg-slate-50 font-bold text-sm"><option value="All">All Status / 全部狀態</option>{[...new Set(readinessItems.map(i=>String(i.Status).toUpperCase()))].map(p=><option key={p} value={p}>{p}</option>)}</select>
-                           <button onClick={resetFilters} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"><RotateCcw size={20}/></button>
-                        </div>
-                        {isAdmin && <button onClick={() => setEditingReadiness({ id: generateId() })} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors"><PlusCircle size={18}/> New Readiness</button>}
-                     </div>
-                     <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                        <table className="w-full text-left border-separate border-spacing-0">
-                          <thead className="bg-slate-50 border-b">
-                             <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Status / 狀態</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
-                             </tr>
-                          </thead>
-                          <tbody className="divide-y text-[11px]">
-                             {filteredReadiness.map(r => (
-                               <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                                 <td className="p-3 font-bold sticky left-0 bg-white z-10 border-b border-r border-slate-100">{String(r.Project||'')}</td>
-                                 <td className="p-3 border-b border-slate-100"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{String(r.Stage||'')}</span></td>
-                                 <td className="p-3 text-indigo-600 font-bold break-words border-b border-slate-100">{String(r.Category||'')}</td>
-                                 <td className="p-3 text-center border-b border-slate-100">
-                                   <span className={`px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${
-                                     String(r.Status||'').toUpperCase()==='ARRIVED'?'bg-emerald-100 text-emerald-700':
-                                     String(r.Status||'').toUpperCase()==='PURCHASING'?'bg-yellow-100 text-yellow-700':
-                                     'bg-slate-100 text-slate-500'
-                                   }`}>{String(r.Status||'').toUpperCase()}</span>
-                                 </td>
-                                 {isAdmin && <td className="p-3 text-center sticky right-0 bg-white z-10 border-b border-l border-slate-100">
-                                   <div className="flex justify-center gap-2">
-                                     <button onClick={()=>setEditingReadiness(r)} className="p-1 hover:bg-slate-200 rounded text-indigo-600"><Pencil size={14}/></button>
-                                     <button onClick={()=>deleteItem(r.id, 'readinessItems')} className="p-1 hover:bg-rose-100 rounded text-rose-500"><Trash2 size={14}/></button>
-                                   </div>
+                               <tr key={r.id} className="hover:bg-slate-50">
+                                 <td className="p-4 font-bold border-r"><span className={`px-2 py-1 rounded-lg border text-[10px] ${getStageStyle(r.Stage)}`}>{r.Stage}</span></td>
+                                 <td className="p-4 font-mono font-bold text-indigo-600">{r.Config}</td>
+                                 <td className="p-4 text-slate-500 leading-relaxed">{r.Description}</td>
+                                 {isAdmin && <td className="p-4 text-center">
+                                   <button onClick={()=>setEditingConfig(r)} className="p-1 text-indigo-600"><Icon name={Pencil} size={14}/></button>
                                  </td>}
                                </tr>
                              ))}
@@ -573,22 +486,21 @@
                      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/30 space-y-8">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Global Progress / 總體進度統計</h3>
-                            <PieChart className="text-indigo-600" size={24}/>
+                            <Icon name={PieChart} className="text-indigo-600" size={24}/>
                         </div>
-                        <div className="p-10 bg-slate-50 rounded-[2rem] text-center space-y-2 border border-slate-100">
-                           <span className="text-6xl font-black text-slate-900 tracking-tighter">{records.length}</span>
-                           <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest">Total Test Records / 總測試件數</span>
+                        <div className="p-10 bg-slate-50 rounded-[2rem] text-center space-y-2 border border-slate-100 shadow-inner">
+                           <span className="text-6xl font-black text-indigo-900 tracking-tighter">{records.length}</span>
+                           <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">Total Test Records / 總測試件數</span>
                         </div>
                         <div className="space-y-6">
                            {(() => {
-                              const total = records.length;
                               const totalForCalc = records.filter(r => r.Result !== 'N/A').length;
                               return RESULTS.map(status => {
                                  const count = records.filter(r => r.Result === status).length;
+                                 if (count === 0) return null;
                                  const isNA = status === 'N/A';
                                  const pct = (!isNA && totalForCalc > 0) ? ((count / totalForCalc) * 100).toFixed(1) : 0;
                                  const color = status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : 'slate';
-                                 if (count === 0) return null;
                                  return (
                                     <div key={status} className="space-y-2">
                                        <div className="flex justify-between text-[11px] font-black uppercase text-slate-500 tracking-wider">
@@ -596,7 +508,7 @@
                                           <span className={`text-${color}-600 text-lg`}>{count} {isNA ? '(-%)' : `(${pct}%)`}</span>
                                        </div>
                                        <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                          <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${color}-500 h-full rounded-full transition-all duration-1000`} />
+                                          <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${color}-500 h-full rounded-full transition-all duration-1000 shadow-sm`} />
                                        </div>
                                     </div>
                                  );
@@ -604,96 +516,47 @@
                            })()}
                         </div>
                      </div>
-
-                     <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/30 space-y-8">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Category Deep Dive / 分類深度統計</h3>
-                            <ChevronRight className="text-slate-300" size={24}/>
-                        </div>
-                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                           {(() => {
-                              const categories = [...new Set(records.map(r => r.Category))];
-                              return categories.length === 0 ? <p className="text-center p-12 text-slate-400">No category data to display.</p> :
-                                 categories.map(cat => {
-                                    const catRecs = records.filter(r => r.Category === cat);
-                                    const totalCat = catRecs.length;
-                                    const totalCatForCalc = catRecs.filter(r => r.Result !== 'N/A').length;
-                                    return (
-                                       <div key={cat} className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 space-y-4 group">
-                                          <div className="flex justify-between items-center">
-                                             <span className="font-black text-slate-700 uppercase text-xs tracking-tight group-hover:text-indigo-600 transition-colors">{cat}</span>
-                                             <span className="text-[10px] font-bold bg-white px-3 py-1 rounded-full text-slate-400 border border-slate-100">{totalCat} Total</span>
-                                          </div>
-                                          <div className="space-y-4 pt-2">
-                                             {RESULTS.map(status => {
-                                                const count = catRecs.filter(r => r.Result === status).length;
-                                                const isNA = status === 'N/A';
-                                                const pct = (!isNA && totalCatForCalc > 0) ? ((count / totalCatForCalc) * 100).toFixed(1) : 0;
-                                                const color = status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : 'slate';
-                                                if (count === 0) return null;
-                                                return (
-                                                   <div key={status} className="space-y-2">
-                                                      <div className="flex justify-between text-[10px] font-black uppercase text-slate-500">
-                                                         <span>{status}</span>
-                                                         <span className={`text-${color}-600`}>{count} {isNA ? '(-%)' : `(${pct}%)`}</span>
-                                                      </div>
-                                                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                                         <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${color}-500 h-full rounded-full transition-all duration-700`} />
-                                                      </div>
-                                                   </div>
-                                                );
-                                             }).filter(Boolean)}
-                                          </div>
-                                       </div>
-                                    );
-                                 });
-                           })()}
-                        </div>
-                     </div>
                   </div>
                 )}
 
                 {activeTab === 'inventory' && (
-                  <div className="space-y-8 animate-in fade-in duration-500">
-                    <div className="flex justify-between items-center">
-                       <div className="flex items-center gap-4">
-                          <button onClick={() => setInventoryGroupBy('Keeper')} className={`px-6 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${inventoryGroupBy === 'Keeper' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:border-indigo-200'}`}>By Keeper / 按保管人</button>
-                          <button onClick={() => setInventoryGroupBy('Stage')} className={`px-6 py-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${inventoryGroupBy === 'Stage' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-200 hover:border-indigo-200'}`}>By Stage-Build / 按階段批次</button>
+                  <div className="space-y-8">
+                    <div className="flex justify-between items-center bg-white p-2 rounded-2xl shadow-sm border">
+                       <div className="flex items-center gap-2">
+                          <button onClick={() => setInventoryGroupBy('Keeper')} className={`px-5 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${inventoryGroupBy === 'Keeper' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-indigo-600'}`}>By Keeper / 按保管人</button>
+                          <button onClick={() => setInventoryGroupBy('Stage')} className={`px-5 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${inventoryGroupBy === 'Stage' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-indigo-600'}`}>By Stage / 按階段</button>
                        </div>
-                       <div className="flex items-center bg-white p-1 rounded-2xl border border-slate-200">
-                          <button onClick={() => setInventorySubView('Detail')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inventorySubView === 'Detail' ? 'bg-slate-100 text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Show Detail</button>
-                          <button onClick={() => setInventorySubView('Config')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inventorySubView === 'Config' ? 'bg-slate-100 text-indigo-600 shadow-sm' : 'text-slate-400'}`}>By Config</button>
+                       <div className="flex items-center gap-2">
+                          <button onClick={() => setInventorySubView('Detail')} className={`px-5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inventorySubView === 'Detail' ? 'bg-slate-100 text-indigo-600' : 'text-slate-400'}`}>Detail</button>
+                          <button onClick={() => setInventorySubView('Config')} className={`px-5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${inventorySubView === 'Config' ? 'bg-slate-100 text-indigo-600' : 'text-slate-400'}`}>By Config</button>
                        </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                        {(() => {
                           const groups = {};
                           samples.forEach(s => {
-                             const key = inventoryGroupBy === 'Keeper' ? (s.Keeper || 'Unknown') : `${s.Stage || 'N/A'}-${s.Build || 'N/A'}`;
+                             const key = inventoryGroupBy === 'Keeper' ? (s.Keeper || 'Unknown') : (s.Stage || 'N/A');
                              if (!groups[key]) groups[key] = [];
                              groups[key].push(s);
                           });
                           return Object.entries(groups).map(([groupName, items]) => {
                              const totalUnits = items.reduce((sum, item) => sum + parseInt(item.Units || '1'), 0);
-                             const otherDimensionCounts = items.reduce((acc, curr) => {
+                             const subCounts = items.reduce((acc, curr) => {
                                 const key = inventorySubView === 'Config' ? (curr.Config || 'No Config') : (inventoryGroupBy === 'Keeper' ? curr.Project : curr.Keeper);
                                 acc[key] = (acc[key] || 0) + parseInt(curr.Units || '1');
                                 return acc;
                              }, {});
                              return (
-                               <div key={groupName} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/20 hover:shadow-indigo-100/50 hover:border-indigo-200 transition-all group flex flex-col h-full">
+                               <div key={groupName} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-100/20 hover:border-indigo-200 transition-all group flex flex-col h-full hover:shadow-indigo-100/50">
                                   <div className="flex justify-between items-start mb-6">
-                                     <div className="space-y-1">
-                                        <h4 className="text-sm font-black text-indigo-900 uppercase break-words leading-tight">{groupName}</h4>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{inventoryGroupBy === 'Keeper' ? 'PROJECT MIX' : 'BUILD STATUS'}</p>
-                                     </div>
-                                     <div className="bg-indigo-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">{totalUnits}</div>
+                                     <div className="space-y-1"><h4 className="text-sm font-black text-indigo-900 uppercase break-words leading-tight">{groupName}</h4><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Inventory</p></div>
+                                     <div className="bg-indigo-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg">{totalUnits}</div>
                                   </div>
-                                  <div className="flex-1 space-y-3">
-                                     {Object.entries(otherDimensionCounts).map(([dimension, count]) => (
-                                       <div key={dimension} className="w-full flex justify-between items-center p-3 rounded-2xl bg-slate-50 border border-transparent transition-all">
-                                          <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight truncate mr-2">{dimension}</span>
-                                          <span className="text-[10px] font-black text-indigo-500 bg-white px-2 py-1 rounded-lg border border-slate-100 shadow-sm">{count}</span>
+                                  <div className="flex-1 space-y-2">
+                                     {Object.entries(subCounts).map(([dimension, count]) => (
+                                       <div key={dimension} className="flex justify-between items-center p-3 rounded-2xl bg-slate-50 text-[10px] font-black uppercase">
+                                          <span className="text-slate-600 truncate mr-2">{dimension}</span>
+                                          <span className="text-indigo-500 bg-white px-2 py-0.5 rounded-lg border">{count}</span>
                                        </div>
                                      ))}
                                   </div>
@@ -706,52 +569,6 @@
                 )}
             </section>
           </main>
-
-          {editingRecord && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
-                 <div className="absolute top-0 right-0 p-6">
-                    <button onClick={()=>setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X size={24}/></button>
-                 </div>
-                 <h3 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tight">Record Editor</h3>
-                 <form onSubmit={(e)=>{e.preventDefault(); handleUpdate(editingRecord, 'records', setRecords); setEditingRecord(null);}} className="grid grid-cols-2 gap-6">
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project</label><input required value={editingRecord.Project||''} onChange={e=>setEditingRecord({...editingRecord, Project:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="projects-data"/></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stage</label><input required value={editingRecord.Stage||''} onChange={e=>setEditingRecord({...editingRecord, Stage:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="stages-data"/></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label><input required value={editingRecord.Category||''} onChange={e=>setEditingRecord({...editingRecord, Category:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" /></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Config</label><input value={editingRecord.Config||''} onChange={e=>setEditingRecord({...editingRecord, Config:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="configs-data"/></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Result</label><select value={editingRecord.Result||'Pass'} onChange={e=>setEditingRecord({...editingRecord, Result:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm">{RESULTS.map(r=>(<option key={r} value={r}>{r}</option>))}</select></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label><input type="date" value={editingRecord.Date||''} onChange={e=>setEditingRecord({...editingRecord, Date:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" /></div>
-                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase font-black tracking-widest">Save Changes</button></div>
-                 </form>
-              </div>
-            </div>
-          )}
-
-          {editingSample && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl p-10 relative overflow-hidden animate-in zoom-in-95 duration-300">
-                 <div className="absolute top-0 right-0 p-6">
-                    <button onClick={()=>setEditingSample(null)} className="p-2 hover:bg-slate-100 rounded-2xl text-slate-400 transition-colors"><X size={24}/></button>
-                 </div>
-                 <h3 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tight">Sample Editor</h3>
-                 <form onSubmit={(e)=>{e.preventDefault(); handleUpdate(editingSample, 'samples', setSamples); setEditingSample(null);}} className="grid grid-cols-2 gap-6">
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sample ID</label><input required value={editingSample['Sample ID']||''} onChange={e=>setEditingSample({...editingSample, 'Sample ID':e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Project</label><input required value={editingSample.Project||''} onChange={e=>setEditingSample({...editingSample, Project:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="projects-data"/></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stage</label><input required value={editingSample.Stage||''} onChange={e=>setEditingSample({...editingSample, Stage:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="stages-data"/></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Build</label><input value={editingSample.Build||''} onChange={e=>setEditingSample({...editingSample, Build:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="builds-data"/></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Units</label><input type="number" value={editingSample.Units||'1'} onChange={e=>setEditingSample({...editingSample, Units:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm"/></div>
-                    <div className="space-y-1"><label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Keeper</label><input value={editingSample.Keeper||''} onChange={e=>setEditingSample({...editingSample, Keeper:e.target.value})} className="w-full p-3 bg-slate-50 border rounded-2xl font-bold text-sm" list="keepers-data"/></div>
-                    <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase font-black">Save Sample</button></div>
-                 </form>
-              </div>
-            </div>
-          )}
-
-          <datalist id="projects-data">{getDynamicOptions(records).projects.map(p=><option key={p} value={p}/>)}</datalist>
-          <datalist id="stages-data">{getDynamicOptions(records).stages.map(p=><option key={p} value={p}/>)}</datalist>
-          <datalist id="builds-data">{getDynamicOptions(samples).builds.map(p=><option key={p} value={p}/>)}</datalist>
-          <datalist id="configs-data">{getDynamicOptions(records).configs.map(p=><option key={p} value={p}/>)}</datalist>
-          <datalist id="keepers-data">{getDynamicOptions(samples).keepers.map(p=><option key={p} value={p}/>)}</datalist>
         </div>
       );
     }
