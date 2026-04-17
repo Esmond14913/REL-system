@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>REL Lab Dashboard - Local-first</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-512.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -245,6 +250,13 @@
          if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
          if (filterConfig !== 'All' && r.Config !== filterConfig) return false;
          if (filterResult !== 'All' && r.Result !== filterResult) return false;
+         if (searchTerm) {
+           const s = searchTerm.toLowerCase();
+           return (r.Project || '').toLowerCase().includes(s) || 
+                  (r['Test item'] || '').toLowerCase().includes(s) || 
+                  (r.Category || '').toLowerCase().includes(s) || 
+                  (r.Remark || '').toLowerCase().includes(s);
+         }
          return true;
       });
       const filteredSamples = samples.filter(r => {
@@ -253,23 +265,48 @@
          if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
          if (filterConfig !== 'All' && r.Config !== filterConfig) return false;
          if (filterKeeper !== 'All' && r.Keeper !== filterKeeper) return false;
+         if (searchTerm) {
+           const s = searchTerm.toLowerCase();
+           return (r.Project || '').toLowerCase().includes(s) || 
+                  (r.SN || '').toLowerCase().includes(s) || 
+                  (r['DUT ID'] || '').toLowerCase().includes(s) || 
+                  (r.Keeper || '').toLowerCase().includes(s) ||
+                  (r.Remark || '').toLowerCase().includes(s);
+         }
          return true;
       });
       const filteredConfigs = configsList.filter(r => {
          if (filterProject !== 'All' && r.Project !== filterProject) return false;
          if (filterStage !== 'All' && r.Stage !== filterStage) return false;
          if (filterBuild !== 'All' && r.Build !== filterBuild) return false;
+         if (searchTerm) {
+           const s = searchTerm.toLowerCase();
+           return (r.Project || '').toLowerCase().includes(s) || 
+                  (r.Config || '').toLowerCase().includes(s) || 
+                  (r.Description || '').toLowerCase().includes(s);
+         }
          return true;
       });
       const filteredReadiness = readinessItems.filter(r => {
          if (filterProject !== 'All' && r.Project !== filterProject) return false;
          if (filterStage !== 'All' && r.Stage !== filterStage) return false;
          if (filterStatus !== 'All' && r.Status !== filterStatus) return false;
+         if (searchTerm) {
+           const s = searchTerm.toLowerCase();
+           return (r.Project || '').toLowerCase().includes(s) || 
+                  (r.Item || '').toLowerCase().includes(s) || 
+                  (r.Category || '').toLowerCase().includes(s);
+         }
          return true;
       });
       const filteredDocuments = documents.filter(r => {
          if (filterProject !== 'All' && r.Project !== filterProject) return false;
          if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+         if (searchTerm) {
+           const s = searchTerm.toLowerCase();
+           return (r.Project || '').toLowerCase().includes(s) || 
+                  (r['Document name'] || '').toLowerCase().includes(s);
+         }
          return true;
       });
 
@@ -978,6 +1015,15 @@
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW Registered', reg))
+          .catch(err => console.log('SW Failed', err));
+      });
+    }
   </script>
 </body>
 </html>
