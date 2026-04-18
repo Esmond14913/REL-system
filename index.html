@@ -73,7 +73,7 @@
 
     const generateId = () => Math.random().toString(36).substr(2, 9);
     const STAGE_SUGGESTIONS = ['All', 'P2', 'EVT', 'DVT', 'PVT', 'MP'];
-    const RESULTS = ['On-going', 'Pass', 'Fail', 'On-hold', 'N/A', 'Not Start'];
+    const RESULTS = ['On-going', 'Pass', 'Fail', 'Completed', 'On-hold', 'N/A', 'Not Start'];
 
     const getStageStyle = (s) => {
       const m = { P2: 'bg-slate-200 text-slate-700 border-slate-300', EVT: 'bg-orange-100 text-orange-600 border-orange-200', DVT: 'bg-indigo-100 text-indigo-600 border-indigo-200', PVT: 'bg-purple-100 text-purple-600 border-purple-200', MP: 'bg-green-100 text-green-600 border-green-200', ALL: 'bg-blue-100 text-blue-600 border-blue-200' };
@@ -81,7 +81,15 @@
     };
 
     const getResultStyle = (r) => {
-      const m = { Pass: 'bg-emerald-500 text-white shadow-sm', Fail: 'bg-rose-500 text-white shadow-sm', 'On-going': 'bg-yellow-400 text-black shadow-sm', 'On-hold': 'bg-white text-slate-700 border-slate-200 shadow-sm', 'N/A': 'bg-black text-white shadow-sm', 'Not Start': 'bg-slate-100 text-slate-400 border-slate-200 shadow-sm' };
+      const m = { 
+        Pass: 'bg-emerald-500 text-white shadow-sm', 
+        Fail: 'bg-rose-500 text-white shadow-sm', 
+        'Completed': 'bg-blue-800 text-white shadow-sm',
+        'On-going': 'bg-yellow-400 text-black shadow-sm', 
+        'On-hold': 'bg-white text-slate-700 border-slate-200 shadow-sm', 
+        'N/A': 'bg-black text-white shadow-sm', 
+        'Not Start': 'bg-slate-100 text-slate-400 border-slate-200 shadow-sm' 
+      };
       return m[String(r)] || 'bg-slate-100 text-slate-400';
     };
 
@@ -103,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.1.3';
+      const APP_VERSION = 'v1.1.4';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
