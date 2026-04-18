@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rel-portal-v1.1.0';
+const CACHE_NAME = 'rel-portal-v1.1.1';
 const ASSETS_TO_CACHE = [
   './index.html',
   './manifest.json',

@@ -103,7 +103,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.1.0';
+      const APP_VERSION = 'v1.1.1';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -521,11 +521,11 @@
 
                        <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden group border border-slate-700">
                           <div className="relative z-10">
-                             <h4 className="text-2xl font-black mb-2 tracking-tight">New to REL Portal?</h4>
-                             <p className="text-indigo-300 font-bold text-sm">Download the standard Excel backup template to start.</p>
+                             <h4 className="text-2xl font-black mb-2 tracking-tight">New to REL Portal? / 第一次使用？</h4>
+                             <p className="text-indigo-300 font-bold text-sm uppercase tracking-wide">Download standard template to start / 下載標準模板開始使用</p>
                           </div>
-                          <button onClick={downloadTemplate} className="w-full md:w-auto px-10 py-5 bg-indigo-500 hover:bg-white hover:text-indigo-600 transition-all font-black uppercase text-xs tracking-[0.3em] rounded-2xl shadow-xl flex items-center justify-center gap-4 relative z-10">
-                             <Table size={20}/> Download Excel Template
+                          <button onClick={() => downloadTemplate()} className="w-full md:w-auto px-10 py-5 bg-indigo-500 hover:bg-white hover:text-indigo-600 transition-all font-black uppercase text-xs tracking-[0.3em] rounded-2xl shadow-xl flex items-center justify-center gap-4 relative z-10">
+                             <Table size={20}/> Download Template / 下載模板
                           </button>
                           <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all"></div>
                        </div>
