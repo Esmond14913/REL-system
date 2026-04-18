@@ -111,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.1.4';
+      const APP_VERSION = 'v1.1.5';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -874,7 +874,7 @@
                                     const statusCounts = RESULTS.map(status => ({
                                        status,
                                        count: catRecs.filter(r => r.Result === status).length,
-                                       color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
+                                       color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'Completed' ? 'blue' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
                                     })).filter(s => s.count > 0);
 
                                     return (
@@ -914,7 +914,7 @@
                                           const statusCounts = RESULTS.map(status => ({
                                              status,
                                              count: projectRecords.filter(r => r.Result === status).length,
-                                             color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
+                                             color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'Completed' ? 'blue' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
                                           })).filter(s => s.count > 0);
 
                                           return statusCounts.map(s => {
