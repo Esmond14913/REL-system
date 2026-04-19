@@ -111,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.1.5';
+      const APP_VERSION = 'v1.1.6';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -532,6 +532,17 @@
                              </div>
                           </div>
                        </div>
+
+                        <div className="mb-12 p-8 bg-amber-50 rounded-[2rem] border border-amber-100 shadow-sm">
+                           <h5 className="text-sm font-black text-amber-900 uppercase tracking-widest mb-4 flex items-center gap-3">
+                              <AlertCircle size={20} className="text-amber-500"/> Filename Rules / 檔名規則
+                           </h5>
+                           <div className="space-y-3 text-[13px] text-amber-800 leading-relaxed font-medium">
+                              <p className="flex gap-2"><span>•</span> <span>系統僅辨識 <strong>HQA_Master_YYYYMMDD.xlsx</strong> 格式（例：HQA_Master_20240419.xlsx）。</span></p>
+                              <p className="flex gap-2"><span>•</span> <span>系統會自動讀取最新日期的檔案。若<strong>手動更改檔名</strong>，系統將無法辨識並載入資料。</span></p>
+                              <p className="flex gap-2"><span>•</span> <span>超過「保留天數」（預設 30 天）的舊檔案將在每次存檔時被<strong>自動清理</strong>。</span></p>
+                           </div>
+                        </div>
 
                        <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden group border border-slate-700">
                           <div className="relative z-10">
