@@ -111,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.2.0';
+      const APP_VERSION = 'v1.2.1';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -353,15 +353,21 @@
          return true;
       });
       const filteredDocuments = documents.filter(r => {
-         if (filterProject !== 'All' && r.Project !== filterProject) return false;
-         if (filterStage !== 'All' && r.Stage !== filterStage) return false;
-         if (searchTerm) {
-           const s = searchTerm.toLowerCase();
-           return (r.Project || '').toLowerCase().includes(s) || 
-                  (r['Document name'] || '').toLowerCase().includes(s);
-         }
-         return true;
-      });
+          if (filterProject !== 'All' && r.Project !== filterProject) return false;
+          if (filterStage !== 'All' && r.Stage !== filterStage) return false;
+          if (searchTerm) {
+            const s = searchTerm.toLowerCase();
+            return (r.Project || '').toLowerCase().includes(s) || 
+                   (r['Document name'] || '').toLowerCase().includes(s);
+          }
+          return true;
+       }).sort((a, b) => {
+          const stageWeights = { 'All': 1, 'P2': 2, 'EVT': 3, 'DVT': 4, 'PVT': 5, 'MP': 6 };
+          const wA = stageWeights[a.Stage] || 999;
+          const wB = stageWeights[b.Stage] || 999;
+          if (wA !== wB) return wA - wB;
+          return (a['Document name'] || '').localeCompare(b['Document name'] || '');
+       });
 
       const handleUpdate = async (type, item) => {
         let payload = {};
