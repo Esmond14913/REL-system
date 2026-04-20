@@ -30,7 +30,7 @@
       Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
       FolderSearch, AlertCircle, FolderLock, Package,
       CheckCircle, FileText, Layers, LayoutList, RotateCcw,
-      HelpCircle, Calculator, Wrench, Activity
+      HelpCircle, Calculator, Wrench, Activity, Info
     } = window.LucideReact;
 
     const DB_NAME = 'HQA_LocalDB';
@@ -111,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.3.0';
+      const APP_VERSION = 'v1.3.1';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -144,6 +144,7 @@
       const [editingConfig, setEditingConfig] = useState(null);
       const [editingReadiness, setEditingReadiness] = useState(null);
       const [editingDocument, setEditingDocument] = useState(null);
+      const [showEaRef, setShowEaRef] = useState(false);
 
       // REL Tools States
       const [afTuse, setAfTuse] = useState(25);
@@ -1109,8 +1110,13 @@
                                 <span className="text-[11px] font-bold text-slate-500 uppercase">Test Temp (℃) / 測試溫度</span>
                                 <input type="number" value={afTtest} onChange={e=>setAfTtest(e.target.value)} className="w-20 bg-transparent text-right font-black text-indigo-600 outline-none text-lg"/>
                              </div>
-                             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
-                                <span className="text-[11px] font-bold text-slate-500 uppercase">Ea (eV) / 活化能</span>
+                             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border relative">
+                                <div className="flex items-center gap-2">
+                                   <span className="text-[11px] font-bold text-slate-500 uppercase">Ea (eV) / 活化能</span>
+                                   <button onClick={()=>setShowEaRef(true)} className="p-1 text-indigo-400 hover:text-indigo-600 transition-colors" title="Ea Reference Table">
+                                      <Info size={14}/>
+                                   </button>
+                                </div>
                                 <input type="number" step="0.1" value={afEa} onChange={e=>setAfEa(e.target.value)} className="w-20 bg-transparent text-right font-black text-indigo-600 outline-none text-lg"/>
                              </div>
                           </div>
@@ -1398,6 +1404,55 @@
                     <div className="col-span-2 pt-4"><button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-slate-900 transition-colors text-white rounded-2xl shadow-xl uppercase">Save Document</button></div>
                  </form>
               </div>
+            </div>
+          )}
+
+          {showEaRef && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[1000] flex items-center justify-center p-4 animate-in fade-in duration-300">
+               <div className="bg-white rounded-[3rem] w-full max-w-2xl shadow-2xl border border-indigo-100 overflow-hidden animate-in zoom-in-95">
+                  <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
+                     <div>
+                        <h3 className="text-xl font-black uppercase tracking-tight">Activation Energy Reference / 活化能參考表</h3>
+                        <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Common Ea values for failure mechanisms</p>
+                     </div>
+                     <button onClick={()=>setShowEaRef(false)} className="p-3 bg-slate-800 hover:bg-rose-500 text-white rounded-2xl transition-all"><X size={20}/></button>
+                  </div>
+                  <div className="p-10">
+                     <table className="w-full text-left border-separate border-spacing-y-2">
+                        <thead>
+                           <tr className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                              <th className="px-4 pb-2">Failure Mechanism / 失效機制</th>
+                              <th className="px-4 pb-2 text-center">Suggested Ea (eV)</th>
+                           </tr>
+                        </thead>
+                        <tbody className="text-sm">
+                           {[
+                              { m: 'Semiconductor Failure (Standard)', e: '0.7', d: '通用半導體零件失效 (預設)' },
+                              { m: 'Electromigration (Metal)', e: '0.6 - 0.9', d: '金屬電遷移' },
+                              { m: 'Solder Joint Fatigue', e: '0.4 - 0.5', d: '銲點疲勞 (Thermal Cycle)' },
+                              { m: 'Dielectric Breakdown / Oxide', e: '1.0', d: '絕緣破壞 / 氧化層崩潰' },
+                              { m: 'Corrosion / Moisture related', e: '0.5 - 0.6', d: '濕氣腐蝕 (THB/HAST)' }
+                           ].map((row, i) => (
+                              <tr key={i} className="group">
+                                 <td className="bg-slate-50 p-4 rounded-l-2xl border-y border-l group-hover:bg-indigo-50 transition-colors">
+                                    <div className="font-black text-slate-800">{row.m}</div>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase">{row.d}</div>
+                                 </td>
+                                 <td className="bg-indigo-50 p-4 rounded-r-2xl border-y border-r text-center group-hover:bg-indigo-100 transition-colors font-black text-indigo-600 text-lg">
+                                    {row.e}
+                                 </td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                     <div className="mt-8 p-6 bg-amber-50 rounded-2xl border border-amber-100 flex gap-4 items-center">
+                        <AlertCircle className="text-amber-500 shrink-0" size={24}/>
+                        <p className="text-[10px] text-amber-900 font-medium leading-relaxed">
+                           Note: Ea values are empirical. When specific failure data is available, please use the calculated value from experiment results for higher accuracy.
+                        </p>
+                     </div>
+                  </div>
+               </div>
             </div>
           )}
         </div>
