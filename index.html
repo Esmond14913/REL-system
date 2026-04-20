@@ -111,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.3.2';
+      const APP_VERSION = 'v1.3.3';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -1096,12 +1096,12 @@
                     {/* Header with Back Button if tool is active */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-4">
                       <div>
-                         <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">REL Labs Toolkit</h2>
+                         <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">REL Labs Toolkit / 可靠度工具箱</h2>
                          <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.3em] mt-1">Reliability Engineering Professional Suite</p>
                       </div>
                       {activeTool && (
                         <button onClick={()=>setActiveTool(null)} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl">
-                          <ChevronLeft size={16}/> Back to Menu
+                          <ChevronLeft size={16}/> Back to Menu / 返回選單
                         </button>
                       )}
                     </div>
@@ -1142,7 +1142,7 @@
                                       <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200"><Wrench size={32}/></div>
                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border px-4 py-2 rounded-full">Manual Calculation</span>
                                    </div>
-                                   <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Acceleration Factor</h4>
+                                   <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Acceleration Factor / 加速因子</h4>
                                    <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mb-10">基於 Arrhenius 模型之加速率計算</p>
                                    
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
@@ -1186,7 +1186,7 @@
                                          <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full font-black text-[10px] uppercase">AF = {calcAF.toFixed(1)}x</span>
                                       </div>
                                    </div>
-                                   <h4 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">Success Test Planner</h4>
+                                   <h4 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">Success Test Planner / 試驗計畫</h4>
                                    <p className="text-xs text-indigo-400 font-bold uppercase tracking-[0.2em] mb-12">基於目標 MTBF 之零失效測試計畫</p>
                                    
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -1234,7 +1234,7 @@
                                       ))}
                                    </div>
                                 </div>
-                                <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Engineering Converter</h4>
+                                <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Engineering Converter / 單位換算</h4>
                                 <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mb-12">實驗室物理單位一鍵換算器</p>
 
                                 <div className="space-y-8">
@@ -1278,7 +1278,7 @@
                              <div className="bg-white rounded-[3rem] p-10 shadow-2xl border border-indigo-100 overflow-hidden relative">
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
                                    <div>
-                                      <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Profile Visualizer</h4>
+                                      <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Profile Visualizer / 測試曲線模擬</h4>
                                       <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mt-2 italic">Chamber Program Logic Pre-visualisation</p>
                                    </div>
                                    <div className="flex gap-4">
@@ -1299,13 +1299,13 @@
                                                     <option value="Soak">Soak / 恆壓</option>
                                                  </select>
                                                  <div className="bg-white border rounded-xl p-2 px-3 flex items-center gap-2 shadow-sm flex-1">
-                                                    <input type="number" value={s.time} onChange={e=>{const n = [...profileSteps]; n[idx].time=parseFloat(e.target.value); setProfileSteps(n);}} className="bg-transparent text-[12px] font-black w-full outline-none" placeholder="Min"/>
+                                                    <input type="number" value={s.time} onChange={e=>{const n = [...profileSteps]; n[idx].time=e.target.value; setProfileSteps(n);}} className="bg-transparent text-[12px] font-black w-full outline-none" placeholder="Min"/>
                                                     <span className="text-[9px] font-bold text-slate-300">MIN</span>
                                                  </div>
                                               </div>
                                               <div className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border">
                                                  <span className="text-[9px] font-black text-slate-400 uppercase">Target</span>
-                                                 <input type="number" value={s.temp} onChange={e=>{const n = [...profileSteps]; n[idx].temp=parseFloat(e.target.value); setProfileSteps(n);}} className="bg-transparent font-black text-slate-900 text-lg outline-none w-full"/>
+                                                 <input type="number" value={s.temp} onChange={e=>{const n = [...profileSteps]; n[idx].temp=e.target.value; setProfileSteps(n);}} className="bg-transparent font-black text-slate-900 text-lg outline-none w-full"/>
                                                  <span className="text-[10px] font-black text-indigo-600">℃</span>
                                               </div>
                                            </div>
