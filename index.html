@@ -30,7 +30,7 @@
       Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
       FolderSearch, AlertCircle, FolderLock, Package,
       CheckCircle, FileText, Layers, LayoutList, RotateCcw,
-      HelpCircle
+      HelpCircle, Calculator, Wrench, Activity
     } = window.LucideReact;
 
     const DB_NAME = 'HQA_LocalDB';
@@ -111,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.2.1';
+      const APP_VERSION = 'v1.3.0';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -144,6 +144,39 @@
       const [editingConfig, setEditingConfig] = useState(null);
       const [editingReadiness, setEditingReadiness] = useState(null);
       const [editingDocument, setEditingDocument] = useState(null);
+
+      // REL Tools States
+      const [afTuse, setAfTuse] = useState(25);
+      const [afTtest, setAfTtest] = useState(85);
+      const [afEa, setAfEa] = useState(0.7);
+      const [stMTBF, setStMTBF] = useState(100000);
+      const [stCL, setStCL] = useState(90);
+      const [stSamples, setStSamples] = useState(32);
+      const [convVal, setConvVal] = useState(1);
+      const [convType, setConvType] = useState('length'); 
+      const [profileSteps, setProfileSteps] = useState([
+        { id: generateId(), type: 'Ramp', time: 30, temp: 25 },
+        { id: generateId(), type: 'Soak', time: 60, temp: 85 },
+        { id: generateId(), type: 'Ramp', time: 30, temp: 25 }
+      ]);
+
+      const calcAF = useMemo(() => {
+        const k = 8.61733e-5; 
+        const t1 = parseFloat(afTuse) + 273.15;
+        const t2 = parseFloat(afTtest) + 273.15;
+        const ea = parseFloat(afEa);
+        if (t1 <= 0 || t2 <= 0 || isNaN(ea)) return 1;
+        return Math.exp((ea / k) * (1/t1 - 1/t2));
+      }, [afTuse, afTtest, afEa]);
+
+      const calcTestTime = useMemo(() => {
+        const cl = parseFloat(stCL) / 100;
+        const n = parseFloat(stSamples);
+        const mtbf = parseFloat(stMTBF);
+        const af = calcAF;
+        if (n <= 0 || af <= 0 || cl >= 1) return 0;
+        return (mtbf * (-Math.log(1 - cl))) / (n * af);
+      }, [stMTBF, stCL, stSamples, calcAF]);
 
       const resetFilters = () => {
         setFilterProject('All'); setFilterStage('All'); setFilterBuild('All');
@@ -425,6 +458,7 @@
                 { id: 'documents', icon: FileText, zh: '文件管理' },
                 { id: 'stats', icon: PieChart, zh: '綜合統計' },
                 { id: 'inventory', icon: Package, zh: '樣本庫存' },
+                { id: 'tools', icon: Calculator, zh: '計算工具' },
                 { id: 'instruction', icon: HelpCircle, zh: '使用說明' },
                 { id: 'settings', icon: Settings, zh: '系統設定' }
               ].map(tab => {
@@ -1051,6 +1085,213 @@
                             </div>
                           );
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'tools' && (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* Top Stats Cards */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                       {/* AF Card */}
+                       <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-indigo-100 flex flex-col group hover:shadow-2xl transition-all">
+                          <div className="flex items-center justify-between mb-8">
+                             <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200"><Wrench size={24}/></div>
+                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border px-3 py-1 rounded-full">Arrhenius AF</span>
+                          </div>
+                          <h4 className="text-xl font-black text-slate-800 mb-6 uppercase tracking-tight">Acceleration Factor / 加速因子</h4>
+                          <div className="space-y-4 flex-1">
+                             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
+                                <span className="text-[11px] font-bold text-slate-500 uppercase">Use Temp (℃) / 使用溫度</span>
+                                <input type="number" value={afTuse} onChange={e=>setAfTuse(e.target.value)} className="w-20 bg-transparent text-right font-black text-indigo-600 outline-none text-lg"/>
+                             </div>
+                             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
+                                <span className="text-[11px] font-bold text-slate-500 uppercase">Test Temp (℃) / 測試溫度</span>
+                                <input type="number" value={afTtest} onChange={e=>setAfTtest(e.target.value)} className="w-20 bg-transparent text-right font-black text-indigo-600 outline-none text-lg"/>
+                             </div>
+                             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
+                                <span className="text-[11px] font-bold text-slate-500 uppercase">Ea (eV) / 活化能</span>
+                                <input type="number" step="0.1" value={afEa} onChange={e=>setAfEa(e.target.value)} className="w-20 bg-transparent text-right font-black text-indigo-600 outline-none text-lg"/>
+                             </div>
+                          </div>
+                          <div className="mt-8 pt-8 border-t border-dashed flex items-center justify-between">
+                             <span className="text-sm font-black text-slate-400 uppercase">Calculated AF</span>
+                             <span className="text-4xl font-black text-indigo-600">{calcAF.toFixed(2)}<span className="text-xs ml-1 font-bold">X</span></span>
+                          </div>
+                       </div>
+
+                       {/* Success Test Card */}
+                       <div className="bg-[#0f172a] rounded-[2.5rem] p-8 shadow-xl text-white flex flex-col group hover:shadow-2xl transition-all border border-slate-700">
+                          <div className="flex items-center justify-between mb-8">
+                             <div className="p-4 bg-indigo-500 rounded-2xl shadow-lg shadow-indigo-900/50 text-white"><Calculator size={24}/></div>
+                             <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest border border-indigo-500/30 px-3 py-1 rounded-full">Planner</span>
+                          </div>
+                          <h4 className="text-xl font-black mb-6 uppercase tracking-tight">Success Test Planner / 試驗計畫</h4>
+                          <div className="space-y-4 flex-1">
+                             <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Target MTBF (Hrs)</span>
+                                <input type="number" value={stMTBF} onChange={e=>setStMTBF(e.target.value)} className="w-32 bg-transparent text-right font-black text-indigo-400 outline-none text-lg"/>
+                             </div>
+                             <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Conf Level (%) / 信賴度</span>
+                                <input type="number" value={stCL} onChange={e=>setStCL(e.target.value)} className="w-20 bg-transparent text-right font-black text-indigo-400 outline-none text-lg"/>
+                             </div>
+                             <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Sample Size (n) / 樣本數</span>
+                                <input type="number" value={stSamples} onChange={e=>setStSamples(e.target.value)} className="w-20 bg-transparent text-right font-black text-indigo-400 outline-none text-lg"/>
+                             </div>
+                          </div>
+                          <div className="mt-8 pt-8 border-t border-dashed border-slate-700 flex items-center justify-between">
+                             <span className="text-sm font-black text-slate-400 uppercase tracking-tighter text-left leading-tight">Test Time Required<br/><span className="text-[10px] font-bold opacity-40 lowercase italic">Assume 0 failure</span></span>
+                             <span className="text-4xl font-black text-indigo-400">{Math.round(calcTestTime).toLocaleString()}<span className="text-xs ml-1 font-bold">H</span></span>
+                          </div>
+                       </div>
+
+                       {/* Unit Converter Card */}
+                       <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-indigo-100 flex flex-col group hover:shadow-2xl transition-all">
+                          <div className="flex items-center justify-between mb-8">
+                             <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-lg"><Activity size={24}/></div>
+                             <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner">
+                                {['length', 'force', 'mass'].map(t=>(
+                                  <button key={t} onClick={()=>setConvType(t)} className={`px-2 py-1.5 text-[9px] font-black uppercase rounded-lg transition-all ${convType === t ? 'bg-white shadow text-indigo-600' : 'text-slate-400'}`}>{t}</button>
+                                ))}
+                             </div>
+                          </div>
+                          <h4 className="text-xl font-black text-slate-800 mb-6 uppercase tracking-tight">Engineering Tool / 單位換算</h4>
+                          <div className="space-y-4 flex-1 overflow-y-auto max-h-[220px] pr-2">
+                             <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 mb-4">
+                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest block mb-2">Input Value</span>
+                                <input type="number" value={convVal} onChange={e=>setConvVal(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-3xl outline-none"/>
+                             </div>
+                             <div className="space-y-2">
+                                {convType === 'length' && [
+                                  { unit: 'mm', label: 'Millimeters', factor: 1 },
+                                  { unit: 'mil', label: 'Mils (1/1000 in)', factor: 39.3701 },
+                                  { unit: 'inch', label: 'Inches', factor: 0.0393701 }
+                                ].map(u => (
+                                  <div key={u.unit} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
+                                     <span className="text-[10px] font-bold text-slate-500 uppercase">{u.label}</span>
+                                     <span className="font-black text-indigo-600 text-sm tracking-tight">{(convVal * u.factor).toFixed(4)} <span className="text-[9px] text-slate-400 uppercase ml-1 font-bold">{u.unit}</span></span>
+                                  </div>
+                                ))}
+                                {convType === 'force' && [
+                                  { unit: 'kgf', label: 'Kilogram-force', factor: 1 },
+                                  { unit: 'N', label: 'Newtons', factor: 9.80665 },
+                                  { unit: 'lbf', label: 'Pound-force', factor: 2.20462 }
+                                ].map(u => (
+                                  <div key={u.unit} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
+                                     <span className="text-[10px] font-bold text-slate-500 uppercase">{u.label}</span>
+                                     <span className="font-black text-indigo-600 text-sm tracking-tight">{(convVal * u.factor).toFixed(4)} <span className="text-[9px] text-slate-400 uppercase ml-1 font-bold">{u.unit}</span></span>
+                                  </div>
+                                ))}
+                                {convType === 'mass' && [
+                                  { unit: 'kg', label: 'Kilograms', factor: 1 },
+                                  { unit: 'lb', label: 'Pounds', factor: 2.20462 },
+                                  { unit: 'oz', label: 'Ounces', factor: 35.274 }
+                                ].map(u => (
+                                  <div key={u.unit} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
+                                     <span className="text-[10px] font-bold text-slate-500 uppercase">{u.label}</span>
+                                     <span className="font-black text-indigo-600 text-sm tracking-tight">{(convVal * u.factor).toFixed(4)} <span className="text-[9px] text-slate-400 uppercase ml-1 font-bold">{u.unit}</span></span>
+                                  </div>
+                                ))}
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* SVG Profile Designer */}
+                    <div className="bg-white rounded-[3rem] p-10 shadow-xl border border-indigo-100 overflow-hidden relative">
+                       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+                          <div>
+                             <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Test Profile Visualizer / 模擬曲線</h4>
+                             <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mt-1">Experimental Chamber Profile Simulation</p>
+                          </div>
+                          <div className="flex gap-2">
+                             <button onClick={()=>setProfileSteps([...profileSteps, { id: generateId(), type: 'Ramp', time: 30, temp: 25 }])} className="px-4 py-2 bg-indigo-600 text-white font-black text-[10px] uppercase rounded-xl shadow-lg hover:bg-slate-900 transition-all">+ Add Step</button>
+                             <button onClick={()=>setProfileSteps([{ id: generateId(), type: 'Ramp', time: 30, temp: 25 }, { id: generateId(), type: 'Soak', time: 60, temp: 85 }, { id: generateId(), type: 'Ramp', time: 30, temp: 25 }])} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><RotateCcw size={20}/></button>
+                          </div>
+                       </div>
+                       
+                       <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
+                          <div className="xl:col-span-1 space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                             {profileSteps.map((s, idx) => (
+                               <div key={s.id} className="flex gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-200 group hover:border-indigo-400 transition-all">
+                                  <div className="text-[10px] font-black text-slate-300 w-4">{idx+1}</div>
+                                  <div className="flex-1 space-y-2">
+                                     <div className="flex gap-2">
+                                        <select value={s.type} onChange={e=>{const n = [...profileSteps]; n[idx].type=e.target.value; setProfileSteps(n);}} className="bg-white border rounded-lg p-1.5 text-[10px] font-black uppercase text-indigo-600 outline-none">
+                                           <option value="Ramp">Ramp</option>
+                                           <option value="Soak">Soak</option>
+                                        </select>
+                                        <input type="number" value={s.time} onChange={e=>{const n = [...profileSteps]; n[idx].time=parseFloat(e.target.value); setProfileSteps(n);}} className="bg-white border rounded-lg p-1.5 text-[10px] font-black w-full outline-none" placeholder="Min"/>
+                                     </div>
+                                     <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase">Target</span>
+                                        <input type="number" value={s.temp} onChange={e=>{const n = [...profileSteps]; n[idx].temp=parseFloat(e.target.value); setProfileSteps(n);}} className="bg-transparent font-black text-slate-800 text-sm outline-none w-full"/>
+                                        <span className="text-[9px] font-bold text-slate-400">℃</span>
+                                     </div>
+                                  </div>
+                                  <button onClick={()=>{const n = [...profileSteps]; n.splice(idx,1); setProfileSteps(n);}} className="p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><X size={14}/></button>
+                               </div>
+                             ))}
+                          </div>
+                          
+                          <div className="xl:col-span-3 bg-slate-900 rounded-[2.5rem] p-8 shadow-inner relative min-h-[400px] flex items-center justify-center border border-slate-700">
+                             {/* SVG Engine */}
+                             <svg viewBox="0 0 800 400" className="w-full h-full drop-shadow-[0_0_20px_rgba(79,70,229,0.3)]">
+                                <defs>
+                                   <linearGradient id="lineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                      <stop offset="0%" stopColor="#818cf8" stopOpacity="0.8" />
+                                      <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.3" />
+                                   </linearGradient>
+                                </defs>
+                                {/* Grid Lines */}
+                                {[0, 100, 200, 300, 400].map(y => <line key={y} x1="50" y1={y} x2="780" y2={y} stroke="#1e293b" strokeWidth="1" strokeDasharray="5,5" />)}
+                                {[50, 232, 414, 597, 780].map(x => <line key={x} x1={x} y1="0" x2={x} y2="400" stroke="#1e293b" strokeWidth="1" />)}
+                                
+                                {/* Labels */}
+                                <text x="30" y="20" fill="#475569" fontSize="10" fontWeight="bold">Temp ℃</text>
+                                <text x="750" y="390" fill="#475569" fontSize="10" fontWeight="bold" textAnchor="end">Time (min)</text>
+
+                                {/* Path Logic */}
+                                {(() => {
+                                  const maxT = Math.max(...profileSteps.map(s => s.temp), 100, 1) + 20;
+                                  const totalTime = profileSteps.reduce((acc, s) => acc + (parseFloat(s.time)||0), 0) || 1;
+                                  const scaleX = 730 / totalTime;
+                                  const scaleY = 350 / maxT;
+                                  
+                                  let currentX = 50;
+                                  let lastTemp = profileSteps[0]?.temp || 25;
+                                  let d = `M 50 ${400 - lastTemp * scaleY}`;
+                                  
+                                  const points = [];
+                                  profileSteps.forEach(s => {
+                                     const t = parseFloat(s.time) || 0;
+                                     const targetT = parseFloat(s.temp) || 0;
+                                     currentX += t * scaleX;
+                                     const y = 400 - targetT * scaleY;
+                                     d += ` L ${currentX} ${y}`;
+                                     points.push({x: currentX, y, temp: targetT, time: t});
+                                  });
+
+                                  return (
+                                    <>
+                                       <path d={d} fill="none" stroke="url(#lineGrad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                                       {points.map((p, i) => (
+                                          <g key={i}>
+                                             <circle cx={p.x} cy={p.y} r="5" fill="#818cf8" />
+                                             <text x={p.x} y={p.y - 12} fill="#818cf8" fontSize="9" fontWeight="black" textAnchor="middle">{p.temp}℃</text>
+                                          </g>
+                                       ))}
+                                    </>
+                                  );
+                                })()}
+                             </svg>
+                             <div className="absolute top-6 left-10 flex items-center gap-4">
+                                <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-indigo-500"></div><span className="text-[9px] font-black text-slate-500 uppercase">Target Temp</span></span>
+                             </div>
+                          </div>
+                       </div>
                     </div>
                   </div>
                 )}
