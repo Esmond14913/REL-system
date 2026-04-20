@@ -111,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.3.5';
+      const APP_VERSION = 'v1.3.6';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -146,6 +146,8 @@
       const [editingDocument, setEditingDocument] = useState(null);
       const [showEaRef, setShowEaRef] = useState(false);
       const [activeTool, setActiveTool] = useState(null);
+      const [showHumidity, setShowHumidity] = useState(false);
+      const [startAt25, setStartAt25] = useState(true);
 
       // REL Tools States
       const [afTuse, setAfTuse] = useState(25);
@@ -157,9 +159,9 @@
       const [convVal, setConvVal] = useState(1);
       const [convType, setConvType] = useState('length'); 
       const [profileSteps, setProfileSteps] = useState([
-        { id: generateId(), type: 'Ramp', time: 30, temp: 25 },
-        { id: generateId(), type: 'Soak', time: 60, temp: 85 },
-        { id: generateId(), type: 'Ramp', time: 30, temp: 25 }
+        { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' },
+        { id: generateId(), type: 'Soak', time: '60', temp: '85', humidity: '85', mode: 'time', slope: '2' },
+        { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }
       ]);
 
       const calcAF = useMemo(() => {
@@ -282,7 +284,7 @@
 
        const downloadTemplate = () => {
         try {
-          alert('Generating Template / 正在生成模板...');
+          alert('Generating Template / �?��?��?模板...');
           const today = dayjs().format('YYYYMMDD');
           const fileName = `HQA_Master_${today}.xlsx`;
           const wb = XLSX.utils.book_new();
@@ -297,9 +299,9 @@
           XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(createEmpty(["Project", "Stage", "Category", "Item", "Status", "Remark"])), 'Readiness');
           XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(createEmpty(["Project", "Stage", "Document name", "Link", "Remark"])), 'Documents');
           XLSX.writeFile(wb, fileName);
-          alert('Download Started / 開始下載...');
+          alert('Download Started / ?��?下�?...');
         } catch (err) {
-          alert('Download Failed / 下載失敗: ' + err.message);
+          alert('Download Failed / 下�?失�?: ' + err.message);
         }
       };
 
@@ -453,16 +455,16 @@
             </div>
             <div className="flex-1 mt-6 px-4 space-y-1 overflow-y-auto">
               {[
-                { id: 'records', icon: Table, zh: '實驗紀錄' },
-                { id: 'tracking', icon: Box, zh: '樣本追蹤' },
-                { id: 'config_recipes', icon: ClipboardList, zh: '配置規格' },
-                { id: 'readiness', icon: CheckCircle, zh: '準備狀態' },
-                { id: 'documents', icon: FileText, zh: '文件管理' },
-                { id: 'stats', icon: PieChart, zh: '綜合統計' },
-                { id: 'inventory', icon: Package, zh: '樣本庫存' },
-                { id: 'tools', icon: Calculator, zh: '計算工具' },
-                { id: 'instruction', icon: HelpCircle, zh: '使用說明' },
-                { id: 'settings', icon: Settings, zh: '系統設定' }
+                { id: 'records', icon: Table, zh: '實�?紀?? },
+                { id: 'tracking', icon: Box, zh: '�?��追蹤' },
+                { id: 'config_recipes', icon: ClipboardList, zh: '?�置規格' },
+                { id: 'readiness', icon: CheckCircle, zh: '準�??�?? },
+                { id: 'documents', icon: FileText, zh: '?�件管�?' },
+                { id: 'stats', icon: PieChart, zh: '綜�?統�?' },
+                { id: 'inventory', icon: Package, zh: '�?��庫�?' },
+                { id: 'tools', icon: Calculator, zh: '計�?工具' },
+                { id: 'instruction', icon: HelpCircle, zh: '使用說�?' },
+                { id: 'settings', icon: Settings, zh: '系統設�?' }
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -536,7 +538,7 @@
                   <div className="max-w-4xl space-y-8">
                     <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
                        <h3 className="text-2xl font-black uppercase border-b pb-8 mb-10 flex items-center justify-between text-indigo-900">
-                          <span><LayoutList className="inline mr-4 text-indigo-500" size={32}/> Usage Instruction / 使用說明</span>
+                          <span><LayoutList className="inline mr-4 text-indigo-500" size={32}/> Usage Instruction / 使用說�?</span>
                           <span className="text-xs bg-indigo-100 text-indigo-600 px-4 py-2 rounded-full font-black tracking-widest">GUIDE</span>
                        </h3>
                        
@@ -545,15 +547,15 @@
                              <div className="flex gap-6 group">
                                 <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-indigo-200 transform group-hover:scale-110 transition-transform">1</div>
                                 <div>
-                                   <div className="font-bold text-slate-800 uppercase text-sm tracking-wider mb-2">Connect Folder / 連接目錄</div>
-                                   <p className="text-slate-500 leading-relaxed font-medium">點擊側邊欄底部 [Connect Folder] 選擇本地工作目錄，系統將自動在此儲存 Excel 備份。</p>
+                                   <div className="font-bold text-slate-800 uppercase text-sm tracking-wider mb-2">Connect Folder / ??��?��?</div>
+                                   <p className="text-slate-500 leading-relaxed font-medium">點�??��?欄�???[Connect Folder] ?��??�地工�??��?，系統�??��??�此?��? Excel ?�份??/p>
                                 </div>
                              </div>
                              <div className="flex gap-6 group">
                                 <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-indigo-200 transform group-hover:scale-110 transition-transform">2</div>
                                 <div>
-                                   <div className="font-bold text-slate-800 uppercase text-sm tracking-wider mb-2">Import Template / 匯入模板</div>
-                                   <p className="text-slate-500 leading-relaxed font-medium">點擊下方按鈕下載初始 Excel 模板，將其放入您的工作目錄中即可開始管理。 </p>
+                                   <div className="font-bold text-slate-800 uppercase text-sm tracking-wider mb-2">Import Template / ?�入模板</div>
+                                   <p className="text-slate-500 leading-relaxed font-medium">點�?下方?��?下�??��? Excel 模板，�??�放?�您?�工作目?�中?�可?��?管�???</p>
                                 </div>
                              </div>
                           </div>
@@ -561,15 +563,15 @@
                              <div className="flex gap-6 group">
                                 <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-indigo-200 transform group-hover:scale-110 transition-transform">3</div>
                                 <div>
-                                   <div className="font-bold text-slate-800 uppercase text-sm tracking-wider mb-2">Offline Access / 離線存取</div>
-                                   <p className="text-slate-500 leading-relaxed font-medium">本系統支援 PWA，可由瀏覽器選單「安裝到案頭」，之後開啟不需網路。</p>
+                                   <div className="font-bold text-slate-800 uppercase text-sm tracking-wider mb-2">Offline Access / ?��?存�?</div>
+                                   <p className="text-slate-500 leading-relaxed font-medium">?�系統支??PWA，可?�瀏覽?�選?�「�?裝到案頭?��?之�??��?不�?網路??/p>
                                 </div>
                              </div>
                              <div className="flex gap-6 group">
                                 <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black shrink-0 shadow-lg shadow-indigo-200 transform group-hover:scale-110 transition-transform">4</div>
                                 <div>
-                                   <div className="font-bold text-slate-800 uppercase text-sm tracking-wider mb-2">Auto Sync / 自動同步</div>
-                                   <p className="text-slate-500 leading-relaxed font-medium">每次編輯 [Save] 後，系統會自動生成帶有日期的 Master Excel 檔案。</p>
+                                   <div className="font-bold text-slate-800 uppercase text-sm tracking-wider mb-2">Auto Sync / ?��??�步</div>
+                                   <p className="text-slate-500 leading-relaxed font-medium">每次編輯 [Save] 後�?系統?�自?��??�帶?�日?��? Master Excel 檔�???/p>
                                 </div>
                              </div>
                           </div>
@@ -577,22 +579,22 @@
 
                         <div className="mb-12 p-8 bg-amber-50 rounded-[2rem] border border-amber-100 shadow-sm">
                            <h5 className="text-sm font-black text-amber-900 uppercase tracking-widest mb-4 flex items-center gap-3">
-                              <AlertCircle size={20} className="text-amber-500"/> Filename Rules / 檔名規則
+                              <AlertCircle size={20} className="text-amber-500"/> Filename Rules / 檔�?規�?
                            </h5>
                            <div className="space-y-3 text-[13px] text-amber-800 leading-relaxed font-medium">
-                              <p className="flex gap-2"><span>•</span> <span>系統僅辨識 <strong>HQA_Master_YYYYMMDD.xlsx</strong> 格式（例：HQA_Master_20240419.xlsx）。</span></p>
-                              <p className="flex gap-2"><span>•</span> <span>系統會自動讀取最新日期的檔案。若<strong>手動更改檔名</strong>，系統將無法辨識並載入資料。</span></p>
-                              <p className="flex gap-2"><span>•</span> <span>超過「保留天數」（預設 30 天）的舊檔案將在每次存檔時被<strong>自動清理</strong>。</span></p>
+                              <p className="flex gap-2"><span>??/span> <span>系統?�辨�?<strong>HQA_Master_YYYYMMDD.xlsx</strong> ?��?（�?：HQA_Master_20240419.xlsx）�?/span></p>
+                              <p className="flex gap-2"><span>??/span> <span>系統?�自?��??��??�日?��?檔�??�若<strong>?��??�改檔�?</strong>，系統�??��?辨�?並�??��??��?/span></p>
+                              <p className="flex gap-2"><span>??/span> <span>超�??��??�天?�」�??�設 30 天�??��?檔�?將在每次存�??�被<strong>?��?清�?</strong>??/span></p>
                            </div>
                         </div>
 
                        <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl relative overflow-hidden group border border-slate-700">
                           <div className="relative z-10">
-                             <h4 className="text-2xl font-black mb-2 tracking-tight">New to REL Portal? / 第一次使用？</h4>
-                             <p className="text-indigo-300 font-bold text-sm uppercase tracking-wide">Download standard template to start / 下載標準模板開始使用</p>
+                             <h4 className="text-2xl font-black mb-2 tracking-tight">New to REL Portal? / 第�?次使?��?</h4>
+                             <p className="text-indigo-300 font-bold text-sm uppercase tracking-wide">Download standard template to start / 下�?標�?模板?��?使用</p>
                           </div>
                           <button onClick={() => downloadTemplate()} className="w-full md:w-auto px-10 py-5 bg-indigo-500 hover:bg-white hover:text-indigo-600 transition-all font-black uppercase text-xs tracking-[0.3em] rounded-2xl shadow-xl flex items-center justify-center gap-4 relative z-10">
-                             <Table size={20}/> Download Template / 下載模板
+                             <Table size={20}/> Download Template / 下�?模板
                           </button>
                           <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all"></div>
                        </div>
@@ -616,18 +618,18 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / 版本</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專�?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?�段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / ?�本</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / ?�置</th>
                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/6">Test item / 測試項目</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Q'ty / 數量</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Start / 開始</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">End / 結束</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Result / 結果</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Report / 報告</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / 備註</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/6">Test item / 測試?�目</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Q'ty / ?��?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Start / ?��?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">End / 結�?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Result / 結�?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Report / ?��?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / ?�註</th>
                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action</th>}
                              </tr>
                           </thead>
@@ -678,19 +680,19 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 text-left">Project / 專案</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / 版本</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">DUT ID / 樣機編號</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">SN / 序號</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 保管人</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 1 / 項目 1</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 2 / 項目 2</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Failure / 不良現象</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">FA Report / FA 報告</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5 text-left">Remark / 備註</th>
-                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 text-left">Project / 專�?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?�段</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / ?�本</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / ?�置</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">DUT ID / �??編�?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">SN / 序�?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 保管�?/th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 1 / ?�目 1</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 2 / ?�目 2</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Failure / 不良?�象</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">FA Report / FA ?��?</th>
+                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5 text-left">Remark / ?�註</th>
+                                {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ?��?</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -737,14 +739,14 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 w-[10%]">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Stage / 階段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Build / 版本</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Config / 配置</th>
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 w-[10%]">Project / 專�?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Stage / ?�段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Build / ?�本</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Config / ?�置</th>
                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[10%]">Size / 尺寸</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[25%]">Description / 描述</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[20%]">Remark / 備註</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[25%]">Description / ?�述</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[20%]">Remark / ?�註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ?��?</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -787,16 +789,16 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專�?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?�段</th>
                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Category / 類別</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Item / 項次</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Numbers / 數量</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">ETA / 預計到達</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Status / 狀態</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">PO / 採購單</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / 備註</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Item / ?�次</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Numbers / ?��?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">ETA / ?��??��?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 text-center">Status / ?�??/th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">PO / ?�購??/th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5">Remark / ?�註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ?��?</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -840,12 +842,12 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專案</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Document Name / 文件名稱</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Link / 連結</th>
-                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Remark / 備註</th>
-                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
+                               <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200">Project / 專�?</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / ?�段</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Document Name / ?�件?�稱</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[15%]">Link / ???</th>
+                               <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-[30%]">Remark / ?�註</th>
+                               {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / ?��?</th>}
                              </tr>
                           </thead>
                           <tbody className="divide-y text-[11px]">
@@ -964,28 +966,55 @@
                                     </div>
                                     <div className="space-y-6 pt-4">
                                        {(() => {
-                                          const statusCounts = RESULTS.map(status => ({
-                                             status,
-                                             count: projectRecords.filter(r => r.Result === status).length,
-                                             color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'Completed' ? 'blue' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
-                                          })).filter(s => s.count > 0);
+                                            let currentBaseTemp = 25;
+                                            const stepsWithCalcTime = [];
+                                            profileSteps.forEach(s => {
+                                               let calcTime = parseFloat(s.time) || 0;
+                                               const targetT = parseFloat(s.temp) || 0;
+                                               if (s.mode === 'slope' && s.type === 'Ramp') {
+                                                  const slope = parseFloat(s.slope) || 0.1;
+                                                  calcTime = Math.abs(targetT - currentBaseTemp) / slope;
+                                               }
+                                               stepsWithCalcTime.push({ ...s, calcTime, targetT });
+                                               currentBaseTemp = targetT;
+                                            });
 
-                                          return statusCounts.map(s => {
-                                             const isNA = s.status === 'N/A';
-                                             const pct = (!isNA && totalForCalc > 0) ? ((s.count / totalForCalc) * 100).toFixed(1) : 0;
-                                             return (
-                                                <div key={s.status} className="space-y-2">
-                                                   <div className="flex justify-between text-[11px] font-black uppercase text-slate-500 tracking-wider">
-                                                      <span>{s.status}</span>
-                                                      <span className={`text-${s.color}-600 text-lg`}>{s.count} {isNA ? '(-%)' : `(${pct}%)`}</span>
-                                                   </div>
-                                                   <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                                      <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${s.color}-500 h-full rounded-full transition-all duration-1000`} />
-                                                   </div>
-                                                </div>
-                                             );
-                                          });
-                                       })()}
+                                            const totalTime = stepsWithCalcTime.reduce((acc, s) => acc + s.calcTime, 0) + (startAt25 ? 5 : 1);
+                                            const maxT = Math.max(...stepsWithCalcTime.map(s => s.targetT), startAt25 ? 25 : 0, 100) + 20;
+                                            const scaleX = 680 / totalTime;
+                                            const scaleY = 380 / maxT;
+
+                                            let currentX = 60;
+                                            let lastT = startAt25 ? 25 : (stepsWithCalcTime[0]?.targetT || 0);
+                                            let dTemp = `M 60 ${450 - lastT * scaleY}`;
+                                            let dHumid = `M 60 ${450 - (parseFloat(stepsWithCalcTime[0]?.humidity)||0) * (450/100)}`;
+                                            
+                                            const points = [];
+                                            stepsWithCalcTime.forEach((s, idx) => {
+                                               currentX += s.calcTime * scaleX;
+                                               const targetY = 450 - s.targetT * scaleY;
+                                               const humidY = 450 - (parseFloat(s.humidity)||0) * 4.5;
+                                               
+                                               dTemp += ` L ${currentX} ${targetY}`;
+                                               dHumid += ` L ${currentX} ${humidY}`;
+                                               points.push({ x: currentX, ty: targetY, hy: humidY, temp: s.targetT, hum: s.humidity, mode: s.mode, time: s.calcTime });
+                                            });
+
+                                            return (
+                                              <>
+                                                 <path d={dTemp} fill="none" stroke="url(#lineGradWide)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
+                                                 {showHumidity && <path d={dHumid} fill="none" stroke="url(#humidGrad)" strokeWidth="3" strokeDasharray="8,4" strokeLinecap="round" strokeLinejoin="round" />}
+                                                 
+                                                 {points.map((p, i) => (
+                                                    <g key={i}>
+                                                       <rect x={p.x-4} y={p.ty-4} width="8" height="8" fill="#818cf8" transform={`rotate(45 ${p.x} ${p.ty})`} />
+                                                       <text x={p.x} y={p.ty - 18} fill="#818cf8" fontSize="12" fontWeight="black" textAnchor="middle">{p.temp}℃</text>
+                                                       {showHumidity && <text x={p.x} y={p.hy + 20} fill="#10b981" fontSize="10" fontWeight="bold" textAnchor="middle">{p.hum}%</text>}
+                                                    </g>
+                                                 ))}
+                                              </>
+                                            );
+                                          })()}
                                     </div>
                                  </div>
                                )}
@@ -1050,7 +1079,7 @@
                                  </div>
                                  <div className="bg-indigo-600 px-4 py-2 rounded-2xl shrink-0">
                                     <span className="text-xl font-black">{group.list.length}</span>
-                                    <span className="text-[9px] ml-1 uppercase font-bold opacity-60">台</span>
+                                    <span className="text-[9px] ml-1 uppercase font-bold opacity-60">??/span>
                                  </div>
                               </div>
                               
@@ -1096,12 +1125,12 @@
                     {/* Header with Back Button if tool is active */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-4">
                       <div>
-                         <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">REL Labs Toolkit / 可靠度工具箱</h2>
+                         <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">REL Labs Toolkit / ?��?度工?�箱</h2>
                          <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.3em] mt-1">Reliability Engineering Professional Suite</p>
                       </div>
                       {activeTool && (
                         <button onClick={()=>setActiveTool(null)} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl">
-                          <ChevronLeft size={16}/> Back to Menu / 返回選單
+                          <ChevronLeft size={16}/> Back to Menu / 返�??�單
                         </button>
                       )}
                     </div>
@@ -1110,10 +1139,10 @@
                       /* LEVEL 1: TOOL MENU */
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-8 animate-in zoom-in-95 duration-300">
                          {[
-                           { id: 'af', icon: Wrench, title: 'Arrhenius AF', zh: '加速因子計算', desc: 'Calculate acceleration factors based on temperature and Ea.', color: 'bg-indigo-600' },
-                           { id: 'st', icon: Calculator, title: 'Success Test Planner', zh: '可靠度試驗計畫', desc: 'Determine required test time for target MTBF and CL.', color: 'bg-[#0f172a]' },
-                           { id: 'conv', icon: Activity, title: 'Unit Converter', zh: '工程單位換算', desc: 'Convert length, force, and mass units used in lab.', color: 'bg-slate-800' },
-                           { id: 'prof', icon: LayoutList, title: 'Profile Visualizer', zh: '測試曲線模擬', desc: 'Visualize thermal and environmental test profiles.', color: 'bg-indigo-500' }
+                           { id: 'af', icon: Wrench, title: 'Arrhenius AF', zh: '?�速�?子�?�?, desc: 'Calculate acceleration factors based on temperature and Ea.', color: 'bg-indigo-600' },
+                           { id: 'st', icon: Calculator, title: 'Success Test Planner', zh: '?��?度試驗�???, desc: 'Determine required test time for target MTBF and CL.', color: 'bg-[#0f172a]' },
+                           { id: 'conv', icon: Activity, title: 'Unit Converter', zh: '工�??��??��?', desc: 'Convert length, force, and mass units used in lab.', color: 'bg-slate-800' },
+                           { id: 'prof', icon: LayoutList, title: 'Profile Visualizer', zh: '測試?��?模擬', desc: 'Visualize thermal and environmental test profiles.', color: 'bg-indigo-500' }
                          ].map(tool => (
                            <div key={tool.id} onClick={()=>setActiveTool(tool.id)} className="bg-white rounded-[3rem] p-10 border border-indigo-50 shadow-xl hover:shadow-2xl hover:border-indigo-200 transition-all cursor-pointer group relative overflow-hidden flex flex-col items-start min-h-[280px]">
                               <div className={`p-6 ${tool.color} text-white rounded-3xl shadow-lg mb-8 group-hover:scale-110 transition-transform`}>
@@ -1142,22 +1171,22 @@
                                       <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200"><Wrench size={32}/></div>
                                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border px-4 py-2 rounded-full">Manual Calculation</span>
                                    </div>
-                                   <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Acceleration Factor / 加速因子</h4>
-                                   <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mb-10">基於 Arrhenius 模型之加速率計算</p>
+                                   <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Acceleration Factor / ?�速�?�?/h4>
+                                   <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mb-10">?�於 Arrhenius 模�?之�??��?計�?</p>
                                    
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                                       <div className="space-y-6">
                                          <div className="space-y-2">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Use Temp / 使用溫度 (℃)</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Use Temp / 使用溫度 (??</span>
                                             <div className="p-5 bg-slate-50 rounded-[1.5rem] border focus-within:border-indigo-400 transition-all"><input type="number" value={afTuse} onChange={e=>setAfTuse(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-2xl outline-none"/></div>
                                          </div>
                                          <div className="space-y-2">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Test Temp / 測試溫度 (℃)</span>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Test Temp / 測試溫度 (??</span>
                                             <div className="p-5 bg-slate-50 rounded-[1.5rem] border focus-within:border-indigo-400 transition-all"><input type="number" value={afTtest} onChange={e=>setAfTtest(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-2xl outline-none"/></div>
                                          </div>
                                          <div className="space-y-2 relative">
                                             <div className="flex justify-between items-center px-1">
-                                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ea (eV) / 活化能</span>
+                                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ea (eV) / 活�???/span>
                                                <button onClick={()=>setShowEaRef(true)} className="flex items-center gap-1 text-[9px] font-black text-indigo-600 hover:text-indigo-800 transition-all uppercase tracking-widest"><Info size={12}/> Reference Table</button>
                                             </div>
                                             <div className="p-5 bg-slate-50 rounded-[1.5rem] border focus-within:border-indigo-400 transition-all"><input type="number" step="0.1" value={afEa} onChange={e=>setAfEa(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-2xl outline-none"/></div>
@@ -1166,7 +1195,7 @@
                                       <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-white flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-200">
                                          <span className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-4">Calculated Result</span>
                                          <div className="text-7xl font-black mb-2 animate-in pulse duration-1000 iteration-infinite">{calcAF.toFixed(2)}<span className="text-xl ml-2 font-bold opacity-60">X</span></div>
-                                         <p className="text-[10px] font-bold text-indigo-100 opacity-60 uppercase tracking-widest leading-relaxed">Acceleration Factor<br/>對比常溫條件之加速倍率</p>
+                                         <p className="text-[10px] font-bold text-indigo-100 opacity-60 uppercase tracking-widest leading-relaxed">Acceleration Factor<br/>對�?常溫條件之�??�倍�?</p>
                                       </div>
                                    </div>
                                  </div>
@@ -1186,29 +1215,29 @@
                                          <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full font-black text-[10px] uppercase">AF = {calcAF.toFixed(1)}x</span>
                                       </div>
                                    </div>
-                                   <h4 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">Success Test Planner / 試驗計畫</h4>
-                                   <p className="text-xs text-indigo-400 font-bold uppercase tracking-[0.2em] mb-12">基於目標 MTBF 之零失效測試計畫</p>
+                                   <h4 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">Success Test Planner / 試�?計畫</h4>
+                                   <p className="text-xs text-indigo-400 font-bold uppercase tracking-[0.2em] mb-12">?�於?��? MTBF 之零失�?測試計畫</p>
                                    
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                                       <div className="space-y-8">
                                          <div className="space-y-3">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Target MTBF / 目標壽命 (Hrs)</span>
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Target MTBF / ?��?壽命 (Hrs)</span>
                                             <input type="number" value={stMTBF} onChange={e=>setStMTBF(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 p-5 rounded-2xl font-black text-indigo-400 text-3xl outline-none focus:border-indigo-500 transition-all"/>
                                          </div>
                                          <div className="grid grid-cols-2 gap-6">
                                             <div className="space-y-3">
-                                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Conf Level (%) / 信賴度</span>
+                                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Conf Level (%) / 信賴�?/span>
                                                <input type="number" value={stCL} onChange={e=>setStCL(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 p-5 rounded-2xl font-black text-white text-2xl outline-none focus:border-indigo-500 transition-all"/>
                                             </div>
                                             <div className="space-y-3">
-                                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Sample (n) / 樣本數</span>
+                                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Sample (n) / �?��??/span>
                                                <input type="number" value={stSamples} onChange={e=>setStSamples(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 p-5 rounded-2xl font-black text-white text-2xl outline-none focus:border-indigo-500 transition-all"/>
                                             </div>
                                          </div>
                                       </div>
                                       <div className="flex flex-col justify-center gap-6">
                                          <div className="p-10 bg-white/5 border border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center text-center backdrop-blur-xl relative">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Required Test Time / 所需測試時間</span>
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Required Test Time / ?�?�測試?��?</span>
                                             <div className="text-6xl font-black text-indigo-400 mb-2">{Math.round(calcTestTime).toLocaleString()}<span className="text-xl ml-2 font-bold opacity-60">H</span></div>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Assume zero failure during test</p>
                                          </div>
@@ -1234,12 +1263,12 @@
                                       ))}
                                    </div>
                                 </div>
-                                <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Engineering Converter / 單位換算</h4>
-                                <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mb-12">實驗室物理單位一鍵換算器</p>
+                                <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Engineering Converter / ?��??��?</h4>
+                                <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mb-12">實�?室物?�單位�??��?算器</p>
 
                                 <div className="space-y-8">
                                    <div className="p-10 bg-indigo-50 rounded-[2.5rem] border border-indigo-100 mb-4 transition-all focus-within:shadow-lg focus-within:bg-white focus-within:-translate-y-1">
-                                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] block mb-4">Base Value / 輸入數值</span>
+                                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] block mb-4">Base Value / 輸入?��?/span>
                                       <input type="number" value={convVal} onChange={e=>setConvVal(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-5xl outline-none"/>
                                    </div>
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1278,7 +1307,7 @@
                              <div className="bg-white rounded-[3rem] p-10 shadow-2xl border border-indigo-100 overflow-hidden relative">
                                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
                                    <div>
-                                      <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Profile Visualizer / 測試曲線模擬</h4>
+                                      <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Profile Visualizer / REL 測試?��?模擬工具</h4>
                                       <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mt-2 italic">Chamber Program Logic Pre-visualisation</p>
                                    </div>
                                    <div className="flex gap-4">
@@ -1290,34 +1319,62 @@
                                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-12">
                                    <div className="xl:col-span-1 space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                                       {profileSteps.map((s, idx) => (
-                                        <div key={s.id} className="flex gap-4 items-center bg-slate-50 p-6 rounded-3xl border border-slate-200 group hover:border-indigo-400 hover:bg-indigo-50 transition-all shadow-sm">
-                                           <div className="text-sm font-black text-slate-200 w-6">{idx+1}</div>
-                                           <div className="flex-1 space-y-3">
-                                              <div className="flex gap-2">
-                                                 <select value={s.type} onChange={e=>{const n = [...profileSteps]; n[idx].type=e.target.value; setProfileSteps(n);}} className="bg-white border rounded-xl p-2 text-[10px] font-black uppercase text-indigo-600 outline-none shadow-sm flex-1">
-                                                    <option value="Ramp">Ramp / 升降</option>
-                                                    <option value="Soak">Soak / 恆壓</option>
-                                                 </select>
-                                                 <div className="bg-white border rounded-xl p-2 px-3 flex items-center gap-2 shadow-sm flex-1 min-w-0">
-                                                    <input type="text" inputMode="decimal" value={s.time} onChange={e=>{
-                                                       const val = e.target.value.replace(/[^\d.]/g, '');
-                                                       const n = [...profileSteps]; n[idx].time=val; setProfileSteps(n);
-                                                    }} className="bg-transparent text-[12px] font-black w-full min-w-[60px] outline-none" placeholder="Min"/>
-                                                    <span className="text-[9px] font-bold text-slate-300 whitespace-nowrap uppercase">Min</span>
-                                                 </div>
-                                              </div>
-                                              <div className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border min-w-0">
-                                                 <span className="text-[9px] font-black text-slate-400 uppercase whitespace-nowrap">Target</span>
-                                                 <input type="text" inputMode="decimal" value={s.temp} onChange={e=>{
-                                                    const val = e.target.value.replace(/[^\d.]/g, '');
-                                                    const n = [...profileSteps]; n[idx].temp=val; setProfileSteps(n);
-                                                 }} className="bg-transparent font-black text-slate-900 text-lg outline-none w-full min-w-[60px]"/>
-                                                 <span className="text-[10px] font-black text-indigo-600">℃</span>
-                                              </div>
-                                           </div>
-                                           <button onClick={()=>{const n = [...profileSteps]; n.splice(idx,1); setProfileSteps(n);}} className="p-3 text-slate-300 hover:text-white hover:bg-rose-500 rounded-xl transition-all shadow-sm"><Trash2 size={16}/></button>
-                                        </div>
-                                      ))}
+                                         <div key={s.id} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 group hover:border-indigo-400 hover:bg-indigo-50 transition-all shadow-sm relative overflow-hidden">
+                                            <div className="flex justify-between items-center mb-4">
+                                               <span className="text-xs font-black text-indigo-400">STEP {idx+1}</span>
+                                               <button onClick={()=>{const n = [...profileSteps]; n.splice(idx,1); setProfileSteps(n);}} className="p-2 text-slate-300 hover:text-rose-500 transition-all"><Trash2 size={16}/></button>
+                                            </div>
+                                            
+                                            <div className="space-y-4">
+                                               <div className="grid grid-cols-2 gap-3">
+                                                  <select value={s.type} onChange={e=>{const n = [...profileSteps]; n[idx].type=e.target.value; setProfileSteps(n);}} className="bg-white border rounded-xl p-3 text-[10px] font-black uppercase text-indigo-600 outline-none shadow-sm flex-1">
+                                                     <option value="Ramp">Ramp / 升降</option>
+                                                     <option value="Soak">Soak / 恆壓</option>
+                                                  </select>
+                                                  {s.type === 'Ramp' ? (
+                                                     <button onClick={()=>{const n=[...profileSteps]; n[idx].mode = n[idx].mode === 'slope' ? 'time':'slope'; setProfileSteps(n);}} className={`border rounded-xl px-2 text-[9px] font-black uppercase transition-all shadow-sm ${s.mode === 'slope' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500'}`}>
+                                                        {s.mode === 'slope' ? '📈 Slope' : '🕒 Time'}
+                                                     </button>
+                                                  ) : (
+                                                     <div className="bg-slate-100 rounded-xl flex items-center justify-center text-[9px] font-black text-slate-400 uppercase">Soak Only</div>
+                                                  )}
+                                               </div>
+
+                                               <div className="space-y-3">
+                                                  <div className="bg-white p-3 rounded-xl shadow-sm border flex items-center gap-3">
+                                                     <span className="text-[9px] font-black text-slate-400 uppercase w-12">{s.mode === 'slope' && s.type === 'Ramp' ? 'Slope' : 'Time'}</span>
+                                                     <input type="text" inputMode="decimal" value={s.mode === 'slope' && s.type === 'Ramp' ? s.slope : s.time} onChange={e=>{
+                                                        const val = e.target.value.replace(/[^\d.]/g, '');
+                                                        const n = [...profileSteps]; 
+                                                        if(s.mode === 'slope' && s.type === 'Ramp') n[idx].slope=val; else n[idx].time=val;
+                                                        setProfileSteps(n);
+                                                     }} className="bg-transparent font-black text-slate-900 text-sm outline-none flex-1 min-w-0" placeholder={s.mode === 'slope' ? '℃/min' : 'min'}/>
+                                                     <span className="text-[9px] font-bold text-slate-300 uppercase">{s.mode === 'slope' && s.type === 'Ramp' ? '℃/m' : 'min'}</span>
+                                                  </div>
+
+                                                  <div className="bg-white p-3 rounded-xl shadow-sm border flex items-center gap-3">
+                                                     <span className="text-[9px] font-black text-slate-400 uppercase w-12">Target</span>
+                                                     <input type="text" inputMode="decimal" value={s.temp} onChange={e=>{
+                                                        const val = e.target.value.replace(/[^\d.]/g, '');
+                                                        const n = [...profileSteps]; n[idx].temp=val; setProfileSteps(n);
+                                                     }} className="bg-transparent font-black text-slate-900 text-sm outline-none flex-1 min-w-0"/>
+                                                     <span className="text-[10px] font-black text-indigo-600 uppercase">℃</span>
+                                                  </div>
+
+                                                  {showHumidity && (
+                                                     <div className="bg-white p-3 rounded-xl shadow-sm border flex items-center gap-3 border-emerald-100 animate-in fade-in slide-in-from-top-2">
+                                                        <span className="text-[9px] font-black text-emerald-400 uppercase w-12">Humid</span>
+                                                        <input type="text" inputMode="decimal" value={s.humidity} onChange={e=>{
+                                                            const val = e.target.value.replace(/[^\d.]/g, '');
+                                                            const n = [...profileSteps]; n[idx].humidity=val; setProfileSteps(n);
+                                                        }} className="bg-transparent font-black text-emerald-600 text-sm outline-none flex-1 min-w-0" placeholder="%RH"/>
+                                                        <span className="text-[9px] font-bold text-emerald-300 uppercase">%RH</span>
+                                                     </div>
+                                                  )}
+                                               </div>
+                                            </div>
+                                         </div>
+                                       ))}
                                    </div>
                                    
                                    <div className="xl:col-span-3 bg-slate-900 rounded-[3rem] p-10 shadow-2xl relative min-h-[500px] flex items-center justify-center border border-slate-800">
@@ -1337,41 +1394,59 @@
                                          {[60, 235, 410, 585, 760].map(x => <line key={x} x1={x} y1="0" x2={x} y2="450" stroke="#1e293b" strokeWidth="1" />)}
                                          
                                          {/* Labels */}
-                                         <text x="35" y="25" fill="#475569" fontSize="10" fontWeight="black" transform="rotate(-90 35,25)">TEMPERATURE (℃)</text>
+                                         <text x="35" y="25" fill="#475569" fontSize="10" fontWeight="black" transform="rotate(-90 35,25)">TEMPERATURE (??</text>
                                          <text x="740" y="440" fill="#475569" fontSize="10" fontWeight="black" textAnchor="end">TIME DURATION (MIN)</text>
 
                                          {(() => {
-                                           const maxT = Math.max(...profileSteps.map(s => s.temp), 100, 1) + 30;
-                                           const totalTime = profileSteps.reduce((acc, s) => acc + (parseFloat(s.time)||0), 0) || 1;
-                                           const scaleX = 700 / totalTime;
-                                           const scaleY = 400 / maxT;
-                                           
-                                           let currentX = 60;
-                                           let lastTemp = profileSteps[0]?.temp || 25;
-                                           let d = `M 60 ${450 - lastTemp * scaleY}`;
-                                           
-                                           const points = [];
-                                           profileSteps.forEach(s => {
-                                              const t = parseFloat(s.time) || 0;
-                                              const targetT = parseFloat(s.temp) || 0;
-                                              currentX += t * scaleX;
-                                              const y = 450 - targetT * scaleY;
-                                              d += ` L ${currentX} ${y}`;
-                                              points.push({x: currentX, y, temp: targetT, time: t});
-                                           });
+                                            let currentBaseTemp = 25;
+                                            const stepsWithCalcTime = [];
+                                            profileSteps.forEach(s => {
+                                               let calcTime = parseFloat(s.time) || 0;
+                                               const targetT = parseFloat(s.temp) || 0;
+                                               if (s.mode === 'slope' && s.type === 'Ramp') {
+                                                  const slope = parseFloat(s.slope) || 0.1;
+                                                  calcTime = Math.abs(targetT - currentBaseTemp) / slope;
+                                               }
+                                               stepsWithCalcTime.push({ ...s, calcTime, targetT });
+                                               currentBaseTemp = targetT;
+                                            });
 
-                                           return (
-                                             <>
-                                                <path d={d} fill="none" stroke="url(#lineGradWide)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
-                                                {points.map((p, i) => (
-                                                   <g key={i}>
-                                                      <rect x={p.x-3} y={p.y-3} width="6" height="6" fill="#818cf8" transform={`rotate(45 ${p.x} ${p.y})`} />
-                                                      <text x={p.x} y={p.y - 18} fill="#818cf8" fontSize="11" fontWeight="black" textAnchor="middle">{p.temp}℃</text>
-                                                   </g>
-                                                ))}
-                                             </>
-                                           );
-                                         })()}
+                                            const totalTime = stepsWithCalcTime.reduce((acc, s) => acc + s.calcTime, 0) + (startAt25 ? 5 : 1);
+                                            const maxT = Math.max(...stepsWithCalcTime.map(s => s.targetT), startAt25 ? 25 : 0, 100) + 20;
+                                            const scaleX = 680 / totalTime;
+                                            const scaleY = 380 / maxT;
+
+                                            let currentX = 60;
+                                            let lastT = startAt25 ? 25 : (stepsWithCalcTime[0]?.targetT || 0);
+                                            let dTemp = `M 60 ${450 - lastT * scaleY}`;
+                                            let dHumid = `M 60 ${450 - (parseFloat(stepsWithCalcTime[0]?.humidity)||0) * (450/100)}`;
+                                            
+                                            const points = [];
+                                            stepsWithCalcTime.forEach((s, idx) => {
+                                               currentX += s.calcTime * scaleX;
+                                               const targetY = 450 - s.targetT * scaleY;
+                                               const humidY = 450 - (parseFloat(s.humidity)||0) * 4.5;
+                                               
+                                               dTemp += ` L ${currentX} ${targetY}`;
+                                               dHumid += ` L ${currentX} ${humidY}`;
+                                               points.push({ x: currentX, ty: targetY, hy: humidY, temp: s.targetT, hum: s.humidity, mode: s.mode, time: s.calcTime });
+                                            });
+
+                                            return (
+                                              <>
+                                                 <path d={dTemp} fill="none" stroke="url(#lineGradWide)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
+                                                 {showHumidity && <path d={dHumid} fill="none" stroke="url(#humidGrad)" strokeWidth="3" strokeDasharray="8,4" strokeLinecap="round" strokeLinejoin="round" />}
+                                                 
+                                                 {points.map((p, i) => (
+                                                    <g key={i}>
+                                                       <rect x={p.x-4} y={p.ty-4} width="8" height="8" fill="#818cf8" transform={`rotate(45 ${p.x} ${p.ty})`} />
+                                                       <text x={p.x} y={p.ty - 18} fill="#818cf8" fontSize="12" fontWeight="black" textAnchor="middle">{p.temp}℃</text>
+                                                       {showHumidity && <text x={p.x} y={p.hy + 20} fill="#10b981" fontSize="10" fontWeight="bold" textAnchor="middle">{p.hum}%</text>}
+                                                    </g>
+                                                 ))}
+                                              </>
+                                            );
+                                          })()}
                                       </svg>
                                       <div className="absolute bottom-8 left-12 flex gap-8">
                                          <span className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-indigo-500 shadow-[0_0_10px_rgba(79,70,229,0.8)]"></div><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Program Path</span></span>
@@ -1497,7 +1572,7 @@
                <div className="bg-white rounded-[3rem] w-full max-w-2xl shadow-2xl border border-indigo-100 overflow-hidden animate-in zoom-in-95">
                   <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
                      <div>
-                        <h3 className="text-xl font-black uppercase tracking-tight">Activation Energy Reference / 活化能參考表</h3>
+                        <h3 className="text-xl font-black uppercase tracking-tight">Activation Energy Reference / 活�??��??�表</h3>
                         <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Common Ea values for failure mechanisms</p>
                      </div>
                      <button onClick={()=>setShowEaRef(false)} className="p-3 bg-slate-800 hover:bg-rose-500 text-white rounded-2xl transition-all"><X size={20}/></button>
@@ -1506,17 +1581,17 @@
                      <table className="w-full text-left border-separate border-spacing-y-2">
                         <thead>
                            <tr className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                              <th className="px-4 pb-2">Failure Mechanism / 失效機制</th>
+                              <th className="px-4 pb-2">Failure Mechanism / 失�?機制</th>
                               <th className="px-4 pb-2 text-center">Suggested Ea (eV)</th>
                            </tr>
                         </thead>
                         <tbody className="text-sm">
                            {[
-                              { m: 'Semiconductor Failure (Standard)', e: '0.7', d: '通用半導體零件失效 (預設)' },
-                              { m: 'Electromigration (Metal)', e: '0.6 - 0.9', d: '金屬電遷移' },
-                              { m: 'Solder Joint Fatigue', e: '0.4 - 0.5', d: '銲點疲勞 (Thermal Cycle)' },
-                              { m: 'Dielectric Breakdown / Oxide', e: '1.0', d: '絕緣破壞 / 氧化層崩潰' },
-                              { m: 'Corrosion / Moisture related', e: '0.5 - 0.6', d: '濕氣腐蝕 (THB/HAST)' }
+                              { m: 'Semiconductor Failure (Standard)', e: '0.7', d: '?�用?��?體零件失??(?�設)' },
+                              { m: 'Electromigration (Metal)', e: '0.6 - 0.9', d: '?�屬?�遷�? },
+                              { m: 'Solder Joint Fatigue', e: '0.4 - 0.5', d: '?��??��? (Thermal Cycle)' },
+                              { m: 'Dielectric Breakdown / Oxide', e: '1.0', d: '絕緣?��? / 氧�?層崩�? },
+                              { m: 'Corrosion / Moisture related', e: '0.5 - 0.6', d: '濕氣?��? (THB/HAST)' }
                            ].map((row, i) => (
                               <tr key={i} className="group">
                                  <td className="bg-slate-50 p-4 rounded-l-2xl border-y border-l group-hover:bg-indigo-50 transition-colors">
