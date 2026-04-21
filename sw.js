@@ -1,53 +1,26 @@
-const CACHE_NAME = 'rel-portal-v1.3.6';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'hqa-portal-v1.4.2-final';
+const assets = [
+  './',
   './index.html',
-  './manifest.json',
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
+  'https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js',
+  'https://unpkg.com/xlsx/dist/xlsx.full.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
-  'https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js',
-  'https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js',
-  'https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.min.js'
+  'https://unpkg.com/dayjs@1.11.10/dayjs.min.js'
 ];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
-  );
-  self.skipWaiting();
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(assets)));
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Clearing Old Cache', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(
+    keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+  )));
 });
 
-self.addEventListener('fetch', (event) => {
-  // Network-first strategy for local assets
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Only cache valid responses
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request))
-  );
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
 });
