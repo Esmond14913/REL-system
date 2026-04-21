@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -966,68 +966,37 @@
                                     </div>
                                     <div className="space-y-6 pt-4">
                                        {(() => {
-                                            let currentBaseTemp = 25;
-                                            const stepsWithCalcTime = [];
-                                            profileSteps.forEach(s => {
-                                               let calcTime = parseFloat(s.time) || 0;
-                                               const targetT = parseFloat(s.temp) || 0;
-                                               if (s.mode === 'slope' && s.type === 'Ramp') {
-                                                  const slope = parseFloat(s.slope) || 0.1;
-                                                  calcTime = Math.abs(targetT - currentBaseTemp) / slope;
-                                               }
-                                               stepsWithCalcTime.push({ ...s, calcTime, targetT });
-                                               currentBaseTemp = targetT;
-                                            });
-
-                                            const totalTime = stepsWithCalcTime.reduce((acc, s) => acc + s.calcTime, 0) + (startAt25 ? 5 : 1);
-                                            const maxT = Math.max(...stepsWithCalcTime.map(s => s.targetT), startAt25 ? 25 : 0, 100) + 20;
-                                            const scaleX = 680 / totalTime;
-                                            const scaleY = 380 / maxT;
-
-                                            let currentX = 60;
-                                            let lastT = startAt25 ? 25 : (stepsWithCalcTime[0]?.targetT || 0);
-                                            let dTemp = `M 60 ${450 - lastT * scaleY}`;
-                                            let dHumid = `M 60 ${450 - (parseFloat(stepsWithCalcTime[0]?.humidity)||0) * 4.5}`;
-                                            
-                                            const points = [];
-                                            stepsWithCalcTime.forEach((s, idx) => {
-                                               currentX += s.calcTime * scaleX;
-                                               const targetY = 450 - s.targetT * scaleY;
-                                               const humidY = 450 - (parseFloat(s.humidity)||0) * 4.5;
-                                               
-                                               dTemp += ` L ${currentX} ${targetY}`;
-                                               dHumid += ` L ${currentX} ${humidY}`;
-                                               points.push({ x: currentX, ty: targetY, hy: humidY, temp: s.targetT, hum: s.humidity, mode: s.mode, time: s.calcTime });
-                                            });
+                                            const totalRecs = filteredRecords.length;
+                                            const calcTotal = filteredRecords.filter(r => r.Result !== 'N/A').length;
+                                            const statusCounts = RESULTS.map(status => ({
+                                               status, count: filteredRecords.filter(r => r.Result === status).length,
+                                               color: status === 'Pass' ? 'emerald' : status === 'Fail' ? 'rose' : status === 'Completed' ? 'blue' : status === 'On-going' ? 'yellow' : status === 'On-hold' ? 'slate-400' : status === 'N/A' ? 'slate-900' : 'slate-300'
+                                            })).filter(s => s.count > 0);
 
                                             return (
-                                              <>
-                                                 {/* Axes & Labels */}
-                                                 <text x="30" y="225" fill="#475569" fontSize="11" fontWeight="black" transform="rotate(-90 30,225)" textAnchor="middle">TEMP (℃)</text>
-                                                 {showHumidity && <text x="775" y="225" fill="#10b981" fontSize="11" fontWeight="black" transform="rotate(90 775,225)" textAnchor="middle">HUMIDITY (%RH)</text>}
-                                                 <text x="400" y="440" fill="#475569" fontSize="11" fontWeight="black" textAnchor="middle">TIME DURATION (MIN)</text>
-
-                                                 {/* Axis Numbers */}
-                                                 {[0, 25, 50, 75, 100].map(v => (
-                                                   <text key={v} x="50" y={450 - (v * scaleY)} fill="#475569" fontSize="9" fontWeight="bold" textAnchor="end">{v}</text>
-                                                 ))}
-                                                 {showHumidity && [0, 20, 40, 60, 80, 100].map(v => (
-                                                   <text key={v} x="750" y={450 - (v * 4.5)} fill="#10b981" fontSize="9" fontWeight="bold" textAnchor="start">{v}</text>
-                                                 ))}
-
-                                                 <path d={dTemp} fill="none" stroke="url(#lineGradWide)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
-                                                 {showHumidity && <path d={dHumid} fill="none" stroke="url(#humidGrad)" strokeWidth="3" strokeDasharray="8,4" strokeLinecap="round" strokeLinejoin="round" />}
-                                                 
-                                                 {points.map((p, i) => (
-                                                    <g key={i}>
-                                                       <rect x={p.x-4} y={p.ty-4} width="8" height="8" fill="#818cf8" transform={`rotate(45 ${p.x} ${p.ty})`} />
-                                                       <text x={p.x} y={p.ty - 18} fill="#818cf8" fontSize="12" fontWeight="black" textAnchor="middle">{p.temp}℃</text>
-                                                       {showHumidity && <text x={p.x} y={p.hy + 20} fill="#10b981" fontSize="10" fontWeight="bold" textAnchor="middle">{p.hum}%</text>}
-                                                    </g>
-                                                 ))}
-                                              </>
+                                               <div className="space-y-4">
+                                                  <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-4">
+                                                     <span>OVERALL PROGRESS</span>
+                                                     <span>{totalRecs} ITEMS TOTAL</span>
+                                                  </div>
+                                                  {statusCounts.map(s => {
+                                                     const isNA = s.status === 'N/A';
+                                                     const pct = (!isNA && calcTotal > 0) ? ((s.count / calcTotal) * 100).toFixed(1) : 0;
+                                                     return (
+                                                        <div key={s.status} className="space-y-2">
+                                                           <div className="flex justify-between text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                                              <span>{s.status}</span>
+                                                              <span className={`text-${s.color}-600`}>{s.count} {isNA ? '(-%)' : `(${pct}%)`}</span>
+                                                           </div>
+                                                           <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                              <div style={{ width: `${isNA ? 0 : pct}%` }} className={`bg-${s.color}-500 h-full rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(var(--tw-shadow-color),0.4)]`} />
+                                                           </div>
+                                                        </div>
+                                                     );
+                                                  })}
+                                               </div>
                                             );
-                                          })()}
+                                       })()}
                                     </div>
                                  </div>
                                )}
