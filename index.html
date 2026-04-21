@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -111,7 +111,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.3.6';
+      const APP_VERSION = 'v1.3.7';
       const [activeTab, setActiveTab] = useState('settings'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -1465,7 +1465,7 @@
                                    <div className="xl:col-span-1 mt-4 p-6 bg-slate-100 rounded-[2rem] border border-slate-200 shadow-inner">
                                       <h5 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-4">Cycle Configuration / 測試循環設定</h5>
                                       {cycles.map((c, i) => (
-                                         <div key={cycle-+i} className="bg-white p-4 rounded-2xl shadow-sm mb-4 last:mb-0 border border-slate-200">
+                                         <div key={`cycle-${i}`} className="bg-white p-4 rounded-2xl shadow-sm mb-4 last:mb-0 border border-slate-200">
                                             <div className="text-[10px] font-black text-indigo-500 mb-2">GROUP {i+1}</div>
                                             <div className="grid grid-cols-3 gap-2">
                                                <div className="flex flex-col">
