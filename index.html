@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
@@ -163,6 +163,87 @@
         { id: generateId(), type: 'Soak', time: '60', temp: '85', humidity: '85', mode: 'time', slope: '2' },
         { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }
       ]);
+      const [cycles, setCycles] = useState([
+        { start: '', end: '', count: 1 },
+        { start: '', end: '', count: 1 }
+      ]);
+
+      const exportProfileToExcel = () => {
+         const wb = XLSX.utils.book_new();
+         const settingsData = [
+            ['Setting', 'Value'],
+            ['StartAt25', startAt25 ? 'TRUE' : 'FALSE'],
+            ['ShowHumidity', showHumidity ? 'TRUE' : 'FALSE'],
+            ['Cycle1_Start', cycles[0].start],
+            ['Cycle1_End', cycles[0].end],
+            ['Cycle1_Count', cycles[0].count],
+            ['Cycle2_Start', cycles[1].start],
+            ['Cycle2_End', cycles[1].end],
+            ['Cycle2_Count', cycles[1].count]
+         ];
+         const wsSettings = XLSX.utils.aoa_to_sheet(settingsData);
+         XLSX.utils.book_append_sheet(wb, wsSettings, "Settings");
+
+         const stepsData = profileSteps.map((s, i) => ({
+            Step: i + 1,
+            Type: s.type,
+            Mode: s.mode,
+            TimeOrSlope: s.mode === 'slope' ? s.slope : s.time,
+            Temp: s.temp,
+            Humidity: s.humidity || ''
+         }));
+         const wsSteps = XLSX.utils.json_to_sheet(stepsData);
+         XLSX.utils.book_append_sheet(wb, wsSteps, "Steps");
+
+         XLSX.writeFile(wb, "REL_Profile_Settings.xlsx");
+      };
+
+      const importProfileFromExcel = (e) => {
+         const file = e.target.files[0];
+         if (!file) return;
+         const reader = new FileReader();
+         reader.onload = (evt) => {
+            try {
+               const bstr = evt.target.result;
+               const wb = XLSX.read(bstr, { type: 'binary' });
+
+               if (wb.Sheets["Settings"]) {
+                  const settings = XLSX.utils.sheet_to_json(wb.Sheets["Settings"], { header: 1 });
+                  const c = [...cycles];
+                  settings.forEach(row => {
+                     const key = row[0];
+                     const val = row[1];
+                     if (key === 'StartAt25') setStartAt25(val === 'TRUE');
+                     if (key === 'ShowHumidity') setShowHumidity(val === 'TRUE');
+                     if (key === 'Cycle1_Start') c[0].start = val || '';
+                     if (key === 'Cycle1_End') c[0].end = val || '';
+                     if (key === 'Cycle1_Count') c[0].count = parseInt(val) || 1;
+                     if (key === 'Cycle2_Start') c[1].start = val || '';
+                     if (key === 'Cycle2_End') c[1].end = val || '';
+                     if (key === 'Cycle2_Count') c[1].count = parseInt(val) || 1;
+                  });
+                  setCycles(c);
+               }
+
+               if (wb.Sheets["Steps"]) {
+                  const stepsJSON = XLSX.utils.sheet_to_json(wb.Sheets["Steps"]);
+                  const newSteps = stepsJSON.map(row => ({
+                     id: generateId(),
+                     type: row.Type,
+                     mode: row.Mode,
+                     time: row.Mode === 'time' ? String(row.TimeOrSlope) : '30',
+                     slope: row.Mode === 'slope' ? String(row.TimeOrSlope) : '2',
+                     temp: String(row.Temp),
+                     humidity: String(row.Humidity || '50')
+                  }));
+                  if (newSteps.length > 0) setProfileSteps(newSteps);
+               }
+            } catch (err) {
+               alert("File import failed: " + err.message);
+            }
+         };
+         reader.readAsBinaryString(file);
+      };
 
       const calcAF = useMemo(() => {
         const k = 8.61733e-5; 
@@ -1293,6 +1374,13 @@
                                       <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mt-2 italic">Chamber Program Logic Pre-visualisation</p>
                                    </div>
                                    <div className="flex flex-wrap gap-4 items-center">
+                                       <button onClick={exportProfileToExcel} className="flex items-center gap-2 px-4 py-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-200 hover:bg-emerald-100 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
+                                          <FolderSearch size={16} /> Export Excel
+                                       </button>
+                                       <label className="flex items-center gap-2 px-4 py-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-200 hover:bg-amber-100 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm cursor-pointer">
+                                          <FolderOpen size={16} /> Import Excel
+                                          <input type="file" accept=".xlsx, .xls" onChange={importProfileFromExcel} className="hidden" />
+                                       </label>
                                        <label className="flex items-center gap-3 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-400 transition-all shadow-sm">
                                           <input type="checkbox" checked={startAt25} onChange={e=>setStartAt25(e.target.checked)} className="w-5 h-5 accent-indigo-600 rounded-lg"/>
                                           <div className="flex flex-col">
@@ -1308,7 +1396,7 @@
                                           </div>
                                        </label>
                                        <button onClick={()=>setProfileSteps([...profileSteps, { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }])} className="px-8 py-4 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 transition-all shadow-indigo-200/50">+ Add New Step</button>
-                                       <button onClick={()=>setProfileSteps([{ id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }, { id: generateId(), type: 'Soak', time: '60', temp: '85', humidity: '85', mode: 'time', slope: '2' }, { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }])} className="p-4 bg-slate-100 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-inner"><RotateCcw size={24}/></button>
+                                       <button onClick={()=>{setProfileSteps([{ id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }, { id: generateId(), type: 'Soak', time: '60', temp: '85', humidity: '85', mode: 'time', slope: '2' }, { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }]); setCycles([{start:'',end:'',count:1},{start:'',end:'',count:1}]);}} className="p-4 bg-slate-100 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-inner"><RotateCcw size={24}/></button>
                                     </div>
                                 </div>
                                 
@@ -1372,6 +1460,36 @@
                                          </div>
                                        ))}
                                    </div>
+
+                                   {/* Cycle Configuration Panel */}
+                                   <div className="xl:col-span-1 mt-4 p-6 bg-slate-100 rounded-[2rem] border border-slate-200 shadow-inner">
+                                      <h5 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-4">Cycle Configuration / 測試循環設定</h5>
+                                      {cycles.map((c, i) => (
+                                         <div key={cycle-+i} className="bg-white p-4 rounded-2xl shadow-sm mb-4 last:mb-0 border border-slate-200">
+                                            <div className="text-[10px] font-black text-indigo-500 mb-2">GROUP {i+1}</div>
+                                            <div className="grid grid-cols-3 gap-2">
+                                               <div className="flex flex-col">
+                                                  <span className="text-[8px] font-bold text-slate-400 uppercase">From Step</span>
+                                                  <select value={c.start} onChange={e=>{const n=[...cycles]; n[i].start=e.target.value; setCycles(n);}} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold outline-none">
+                                                     <option value="">-</option>
+                                                     {profileSteps.map((_, idx) => <option key={idx} value={idx+1}>{idx+1}</option>)}
+                                                  </select>
+                                               </div>
+                                               <div className="flex flex-col">
+                                                  <span className="text-[8px] font-bold text-slate-400 uppercase">To Step</span>
+                                                  <select value={c.end} onChange={e=>{const n=[...cycles]; n[i].end=e.target.value; setCycles(n);}} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold outline-none">
+                                                     <option value="">-</option>
+                                                     {profileSteps.map((_, idx) => <option key={idx} value={idx+1}>{idx+1}</option>)}
+                                                  </select>
+                                               </div>
+                                               <div className="flex flex-col">
+                                                  <span className="text-[8px] font-bold text-slate-400 uppercase">Loops</span>
+                                                  <input type="number" min="1" value={c.count} onChange={e=>{const n=[...cycles]; n[i].count=parseInt(e.target.value)||1; setCycles(n);}} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold outline-none" />
+                                               </div>
+                                            </div>
+                                         </div>
+                                      ))}
+                                   </div>
                                    
                                    <div className="xl:col-span-3 bg-slate-900 rounded-[3rem] p-10 shadow-2xl relative min-h-[500px] flex items-center justify-center border border-slate-800">
                                       <svg viewBox="0 0 800 450" className="w-full h-full drop-shadow-[0_0_30px_rgba(79,70,229,0.4)]">
@@ -1394,9 +1512,28 @@
                                          <text x="740" y="440" fill="#475569" fontSize="10" fontWeight="black" textAnchor="end">TIME DURATION (MIN)</text>
 
                                          {(() => {
+                                            // STEP 1: Unroll cycles
+                                            let unrolledSteps = [...profileSteps];
+                                            cycles.forEach(c => {
+                                               const s = parseInt(c.start);
+                                               const e = parseInt(c.end);
+                                               const count = parseInt(c.count);
+                                               if (!isNaN(s) && !isNaN(e) && s <= e && count > 1 && s >= 1 && e <= unrolledSteps.length) {
+                                                  const pre = unrolledSteps.slice(0, s - 1);
+                                                  const loopBlock = unrolledSteps.slice(s - 1, e);
+                                                  const post = unrolledSteps.slice(e);
+                                                  
+                                                  const repeatedBlock = [];
+                                                  for(let i=0; i<count; i++) {
+                                                     repeatedBlock.push(...loopBlock);
+                                                  }
+                                                  unrolledSteps = [...pre, ...repeatedBlock, ...post];
+                                               }
+                                            });
+
                                             let currentBaseTemp = 25;
                                             const stepsWithCalcTime = [];
-                                            profileSteps.forEach(s => {
+                                            unrolledSteps.forEach(s => {
                                                let calcTime = parseFloat(s.time) || 0;
                                                const targetT = parseFloat(s.temp) || 0;
                                                if (s.mode === 'slope' && s.type === 'Ramp') {
