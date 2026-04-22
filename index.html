@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HQA Portal v1.4.4 | REL Laboratory</title>
+    <title>HQA Portal v1.4.5 | REL Laboratory</title>
     <link rel="icon" href="https://lucide.dev/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -128,7 +128,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.4.4';
+      const APP_VERSION = 'v1.4.5';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -1438,10 +1438,19 @@
                                               {[0, 0.25, 0.5, 0.75, 1].map(p => <line key={p} x1="80" y1={40 + p*240} x2="940" y2={40 + p*240} stroke="#1e293b" strokeWidth="1" strokeDasharray="6,6" opacity="0.4" />)}
                                               {[0, 0.2, 0.4, 0.6, 0.8, 1].map(p => <line key={p} x1={80 + p*860} y1="40" x2={80 + p*860} y2="280" stroke="#1e293b" strokeWidth="1" strokeDasharray="3,3" opacity="0.2" />)}
                                               
-                                              {/* Left Axis - Temp Labels */}
-                                              {[minV, minV + rangeV*0.25, minV + rangeV*0.5, minV + rangeV*0.75, maxV].map(v => (
-                                                <text key={v} x="70" y={toY(v)} fill="#818cf8" fontSize="10" fontWeight="999" textAnchor="end" dominantBaseline="middle">{Math.round(v)}</text>
-                                              ))}
+                                              {/* Left Axis - Temp Labels (Every 25 units) */}
+                                              {(() => {
+                                                const labels = [];
+                                                const start = Math.floor(minV / 25) * 25;
+                                                const end = Math.ceil(maxV / 25) * 25;
+                                                for (let v = start; v <= end; v += 25) {
+                                                  if (v >= minV - 5 && v <= maxV + 5) labels.push(v);
+                                                }
+                                                if (!labels.includes(0) && minV <= 0 && maxV >= 0) labels.push(0);
+                                                return labels.map(v => (
+                                                  <text key={`v-${v}`} x="70" y={toY(v)} fill="#818cf8" fontSize="10" fontWeight="999" textAnchor="end" dominantBaseline="middle">{v}</text>
+                                                ));
+                                              })()}
                                               <text x="20" y="160" fill="#818cf8" fontSize="11" fontWeight="999" textAnchor="middle" transform="rotate(-90 20,160)" className="uppercase tracking-widest">Temperature (℃)</text>
 
                                               {/* Target Value Ticks on Y-axis (Red marks) */}
@@ -1462,11 +1471,20 @@
                                                 </React.Fragment>
                                               )}
 
-                                              {/* Bottom Axis - Time Labels */}
-                                              {[0, 0.25, 0.5, 0.75, 1].map(p => (
-                                                <text key={`t-${p}`} x={80 + p*860} y="300" fill="#475569" fontSize="10" fontWeight="999" textAnchor="middle">{Math.round(p*tt)}m</text>
-                                              ))}
-                                              <text x="510" y="315" fill="#475569" fontSize="11" fontWeight="999" textAnchor="middle" className="uppercase tracking-widest">Duration (Minutes)</text>
+                                              {/* Bottom Axis - Time Labels (Adaptive 30m / 1h) */}
+                                              {(() => {
+                                                const useHours = tt >= 180;
+                                                const interval = useHours ? 60 : 30;
+                                                const labels = [];
+                                                for (let t = 0; t <= tt; t += interval) labels.push(t);
+                                                if (tt % interval > interval/2) labels.push(tt); // add end point if significant
+                                                return labels.map(t => (
+                                                  <text key={`t-${t}`} x={toX(t)} y="300" fill="#475569" fontSize="10" fontWeight="999" textAnchor="middle">
+                                                    {useHours ? (t === 0 ? '0' : (t % 60 === 0 ? (t/60)+'h' : t+'m')) : t+'m'}
+                                                  </text>
+                                                ));
+                                              })()}
+                                              <text x="510" y="315" fill="#475569" fontSize="11" fontWeight="999" textAnchor="middle" className="uppercase tracking-widest">Duration ({tt >= 180 ? 'Hours/Minutes' : 'Minutes'})</text>
 
                                               {/* Paths */}
                                               <path d={dL} fill="none" stroke="url(#lineGrad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
