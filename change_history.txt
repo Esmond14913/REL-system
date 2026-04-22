@@ -1,0 +1,96 @@
+HQA Portal - Release History / 版本變更歷史紀錄
+==================================================
+
+v1.5.2 (Latest) - 2026-04-22
+----------------------------
+[EN]
+- Redesigned Unit Converter with a high-density Matrix Layout.
+- Implemented multi-way synchronized unit conversion (Length, Force, Mass).
+- Added bi-directional input support with yellow highlighted focus areas.
+- Integrated "Conversion Ratio" labels for engineering transparency.
+- Removed legacy category switchers for a more streamlined experience.
+[ZH]
+- 徹底重構單位換算器，採用高密度「矩陣式佈局」。
+- 實現長度、力量、重量三組單位的「多向同步換算」邏輯。
+- 新增黃色手動輸入區，支援組內任一單位輸入後全自動同步。
+- 整合「換算比例」標籤，提升工程計算透明度。
+- 移除舊版分類切換按鈕，優化操作流程。
+
+v1.5.1 - 2026-04-22
+----------------------------
+[EN]
+- Consolidated "Arrhenius AF" and "Success Test Planner" into a single "MTBF Calculator".
+- Redesigned MTBF interface into a side-by-side high-density dashboard.
+- Upgraded statistical logic to support Failure Counts (c >= 0) using Chi-Square Inverse.
+- Added "Assessment Mode" with individual unit test duration tracking.
+- Implemented "Calculation Summary & Purpose" dynamic card (Bilingual).
+- Optimized all UI labels with bilingual (EN/ZH) descriptions and 15px fonts.
+[ZH]
+- 整合「加速因子」與「成功試驗計畫」為單一「MTBF 計算器」。
+- 採用並排式 (Side-by-Side) 高密度儀表板設計。
+- 升級統計邏輯，透過卡方分布反函數支援「失效數 (c >= 0)」計算。
+- 新增「結果評估模式」，支援個別樣本測試時數輸入與自動加總。
+- 新增「計算摘要與目的」動態生成卡片（中英雙語）。
+- 全介面標籤雙語化，並將輸入標題優化為 15px 字級。
+
+v1.5.0 - 2026-04-22
+----------------------------
+[EN]
+- Major UI Overhaul: Introduced modern High-Density Dashboard design.
+- Unified the "Indigo & Slate" premium aesthetic across all modules.
+- Improved responsive layout for desktop and tablet users.
+[ZH]
+- 重大介面翻新：引入現代化高密度儀表板設計語彙。
+- 統一全系統「靛青與石板灰」的高級質感配色。
+- 優化桌機與平板用戶的響應式佈局。
+
+v1.4.0
+----------------------------
+[EN]
+- Introduced Reliability Engineering Toolkit.
+- Added Arrhenius Acceleration Factor (AF) Calculator.
+- Added Success Test Planner (c=0 logic).
+[ZH]
+- 引入可靠度工程工具箱。
+- 新增 Arrhenius 溫度應力加速因子 (AF) 計算器。
+- 新增成功試驗計畫 (Success Test Planner, c=0 邏輯)。
+
+v1.3.0
+----------------------------
+[EN]
+- Added Engineering Unit Converter (Length, Force, Mass).
+- Implemented card-based conversion results.
+[ZH]
+- 新增工程單位換算功能（長度、力量、重量）。
+- 實作卡片式換算結果顯示。
+
+v1.2.0
+----------------------------
+[EN]
+- Introduced Profile Visualizer for environmental test curves.
+- Added Excel export functionality for test profiles.
+- Integrated Cycle Manager for complex ramp/soak repetitions.
+[ZH]
+- 引入環境測試曲線模擬器 (Profile Visualizer)。
+- 支援將測試條件匯出至 Excel 表格。
+- 整合循環管理器 (Cycle Manager)，支援複雜的升降溫循環設定。
+
+v1.1.0
+----------------------------
+[EN]
+- Implemented Progressive Web App (PWA) support with Offline Caching.
+- Added Local Database (IndexedDB) for secure file handle management.
+- Established Record Management system for local laboratory data.
+[ZH]
+- 實作 PWA 支援與離線快取機制。
+- 新增本地資料庫 (IndexedDB) 用於安全管理檔案授權。
+- 建立實驗室本地數據紀錄管理系統。
+
+v1.0.0
+----------------------------
+[EN]
+- Initial Release of HQA Portal.
+- Core laboratory productivity dashboard and navigation framework.
+[ZH]
+- HQA Portal 初始版本發布。
+- 建立核心實驗室生產力儀表板與導覽架構。
