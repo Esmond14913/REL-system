@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HQA Portal v1.4.3 | REL Laboratory</title>
+    <title>HQA Portal v1.4.4 | REL Laboratory</title>
     <link rel="icon" href="https://lucide.dev/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -45,7 +45,8 @@
       Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
       FolderSearch, AlertCircle, FolderLock, Package,
       CheckCircle, FileText, Layers, LayoutList, RotateCcw,
-      HelpCircle, Calculator, Wrench, Activity, Info, Clock
+      HelpCircle, Calculator, Wrench, Activity, Info, Clock,
+      Download, Upload
     } = Lucide;
 
     const DB_NAME = 'HQA_LocalDB';
@@ -127,7 +128,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.4.3';
+      const APP_VERSION = 'v1.4.4';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -1396,7 +1397,6 @@
                                       <defs>
                                         <linearGradient id="lineGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#818cf8" stopOpacity="0.8" /><stop offset="100%" stopColor="#4f46e5" stopOpacity="0.1" /></linearGradient>
                                       </defs>
-                                      {[0, 0.25, 0.5, 0.75, 1].map(p => <line key={p} x1="60" y1={30 + p*260} x2="960" y2={30 + p*260} stroke="#1e293b" strokeWidth="1" strokeDasharray="6,6" />)}
                                       
                                       {(() => {
                                          let unrolled = [...profileSteps];
@@ -1418,28 +1418,64 @@
                                          const maxV = Math.max(...calc.map(s => s.t), 100) + 15;
                                          const minV = Math.min(...calc.map(s => s.t), 0) - 15;
                                          const rangeV = maxV - minV;
-                                         const sX = 900 / tt; const sY = 260 / rangeV;
-                                         const toX = (t) => 60 + t * sX; const toY = (v) => 290 - (v - minV) * sY;
+                                         const sX = 860 / tt; const sY = 240 / rangeV;
+                                         const toX = (t) => 80 + t * sX; const toY = (v) => 280 - (v - minV) * sY;
                                          
                                          let curT = startAt25 ? 5 : 0;
                                          let dL = `M ${toX(0)} ${toY(startAt25 ? 25 : calc[0]?.t || 0)}`;
                                          if(startAt25) dL += ` L ${toX(5)} ${toY(25)}`;
-                                         let dH = `M ${toX(0)} ${290 - (parseFloat(calc[0]?.humidity)||0) * 2.5}`;
+                                         let dH = `M ${toX(0)} ${280 - (parseFloat(calc[0]?.humidity)||0) * 2.4}`;
                                          const pts = [];
                                          calc.forEach(s => {
-                                            curT += s.m; const tx = toX(curT); const ty = toY(s.t); const hy = 290 - (parseFloat(s.humidity)||0) * 2.5;
+                                            curT += s.m; const tx = toX(curT); const ty = toY(s.t); const hy = 280 - (parseFloat(s.humidity)||0) * 2.4;
                                             dL += ` L ${tx} ${ty}`; dH += ` L ${tx} ${hy}`;
-                                            pts.push({ x: tx, ty, hy, t: s.t, h: s.humidity });
+                                            pts.push({ x: tx, ty, hy, t: s.t, h: s.humidity, m: curT });
                                          });
 
                                          return (
                                            <React.Fragment>
+                                              {/* Grid */}
+                                              {[0, 0.25, 0.5, 0.75, 1].map(p => <line key={p} x1="80" y1={40 + p*240} x2="940" y2={40 + p*240} stroke="#1e293b" strokeWidth="1" strokeDasharray="6,6" opacity="0.4" />)}
+                                              {[0, 0.2, 0.4, 0.6, 0.8, 1].map(p => <line key={p} x1={80 + p*860} y1="40" x2={80 + p*860} y2="280" stroke="#1e293b" strokeWidth="1" strokeDasharray="3,3" opacity="0.2" />)}
+                                              
+                                              {/* Left Axis - Temp Labels */}
+                                              {[minV, minV + rangeV*0.25, minV + rangeV*0.5, minV + rangeV*0.75, maxV].map(v => (
+                                                <text key={v} x="70" y={toY(v)} fill="#818cf8" fontSize="10" fontWeight="999" textAnchor="end" dominantBaseline="middle">{Math.round(v)}</text>
+                                              ))}
+                                              <text x="20" y="160" fill="#818cf8" fontSize="11" fontWeight="999" textAnchor="middle" transform="rotate(-90 20,160)" className="uppercase tracking-widest">Temperature (℃)</text>
+
+                                              {/* Target Value Ticks on Y-axis (Red marks) */}
+                                              {Array.from(new Set(profileSteps.map(s=>s.temp))).map((val,idx) => (
+                                                <g key={`target-${idx}`}>
+                                                   <line x1="75" y1={toY(val)} x2="80" y2={toY(val)} stroke="#ef4444" strokeWidth="2" />
+                                                   <text x="50" y={toY(val)} fill="#ef4444" fontSize="9" fontWeight="999" textAnchor="end" dominantBaseline="middle">{val}</text>
+                                                </g>
+                                              ))}
+
+                                              {/* Right Axis - Humidity Labels (Secondary) */}
+                                              {showHumidity && (
+                                                <React.Fragment>
+                                                   {[0, 25, 50, 75, 100].map(v => (
+                                                      <text key={`h-${v}`} x="950" y={280 - v*2.4} fill="#10b981" fontSize="10" fontWeight="999" textAnchor="start" dominantBaseline="middle">{v}</text>
+                                                   ))}
+                                                   <text x="985" y="160" fill="#10b981" fontSize="11" fontWeight="999" textAnchor="middle" transform="rotate(90 985,160)" className="uppercase tracking-widest">RH (%)</text>
+                                                </React.Fragment>
+                                              )}
+
+                                              {/* Bottom Axis - Time Labels */}
+                                              {[0, 0.25, 0.5, 0.75, 1].map(p => (
+                                                <text key={`t-${p}`} x={80 + p*860} y="300" fill="#475569" fontSize="10" fontWeight="999" textAnchor="middle">{Math.round(p*tt)}m</text>
+                                              ))}
+                                              <text x="510" y="315" fill="#475569" fontSize="11" fontWeight="999" textAnchor="middle" className="uppercase tracking-widest">Duration (Minutes)</text>
+
+                                              {/* Paths */}
                                               <path d={dL} fill="none" stroke="url(#lineGrad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
                                               {showHumidity && <path d={dH} fill="none" stroke="#10b981" strokeWidth="2" strokeDasharray="6,3" opacity="0.6" />}
+                                              
+                                              {/* Points */}
                                               {pts.map((p, i) => (
                                                 <g key={i}>
-                                                  <circle cx={p.x} cy={p.ty} r="3" fill="#818cf8" />
-                                                  <text x={p.x} y={p.ty - 10} fill="#818cf8" fontSize="10" fontWeight="999" textAnchor="middle">{p.t}C</text>
+                                                  <circle cx={p.x} cy={p.ty} r="3" fill="#818cf8" stroke="white" strokeWidth="1" />
                                                 </g>
                                               ))}
                                            </React.Fragment>
@@ -1489,8 +1525,8 @@
                                       <h5 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Step Definitions</h5>
                                    </div>
                                    <div className="flex gap-2">
-                                      <button onClick={exportProfileToExcel} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><FolderSearch size={20}/></button>
-                                      <label className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all cursor-pointer"><FolderOpen size={20}/><input type="file" accept=".xlsx, .xls" onChange={importProfileFromExcel} className="hidden" /></label>
+                                      <button onClick={exportProfileToExcel} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><Download size={20}/></button>
+                                      <label className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all cursor-pointer"><Upload size={20}/><input type="file" accept=".xlsx, .xls" onChange={importProfileFromExcel} className="hidden" /></label>
                                    </div>
                                  </div>
 
