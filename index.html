@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HQA Portal v1.4.7 | REL Laboratory</title>
+    <title>HQA Portal v1.4.8 | REL Laboratory</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="theme-color" content="#4f46e5">
@@ -131,7 +131,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.4.7';
+      const APP_VERSION = 'v1.4.8';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -1581,14 +1581,23 @@
                                                   ) : '-'}
                                                </td>
                                                <td className="py-4 px-4 border-y border-slate-100">
-                                                  <input type="text" value={s.mode==='slope'&&s.type==='Ramp'?s.slope:s.time} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; if(s.mode==='slope'&&s.type==='Ramp') n[idx].slope=v; else n[idx].time=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 font-bold outline-none" placeholder={s.mode==='slope'?'℃/m':'min'} />
+                                                  <div className="relative flex items-center">
+                                                     <input type="text" value={s.mode==='slope'&&s.type==='Ramp'?s.slope:s.time} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; if(s.mode==='slope'&&s.type==='Ramp') n[idx].slope=v; else n[idx].time=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 pr-10 font-bold outline-none" placeholder={s.mode==='slope'?'℃/m':'min'} />
+                                                     <span className="absolute right-3 text-[9px] font-black text-slate-300 pointer-events-none uppercase">{s.mode==='slope'&&s.type==='Ramp'?'℃/m':'min'}</span>
+                                                  </div>
                                                </td>
                                                <td className="py-4 px-4 border-y border-slate-100">
-                                                  <input type="text" value={s.temp} onChange={e=>{const v=e.target.value.replace(/[^\d.-]/g,''); const n=[...profileSteps]; n[idx].temp=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 font-bold outline-none" placeholder="℃" />
+                                                  <div className="relative flex items-center">
+                                                     <input type="text" value={s.temp} onChange={e=>{const v=e.target.value.replace(/[^\d.-]/g,''); const n=[...profileSteps]; n[idx].temp=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 pr-8 font-bold outline-none" placeholder="℃" />
+                                                     <span className="absolute right-3 text-[9px] font-black text-slate-300 pointer-events-none">℃</span>
+                                                  </div>
                                                </td>
                                                {showHumidity && (
                                                   <td className="py-4 px-4 border-y border-slate-100 animate-in fade-in transition-all">
-                                                     <input type="text" value={s.humidity} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; n[idx].humidity=v; setProfileSteps(n);}} className="w-full border border-emerald-200 rounded-lg p-2 font-bold outline-none text-emerald-600" placeholder="%RH" />
+                                                     <div className="relative flex items-center">
+                                                        <input type="text" value={s.humidity} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; n[idx].humidity=v; setProfileSteps(n);}} className="w-full border border-emerald-200 rounded-lg p-2 pr-10 font-bold outline-none text-emerald-600" placeholder="%RH" />
+                                                        <span className="absolute right-3 text-[9px] font-black text-emerald-200 pointer-events-none">%RH</span>
+                                                     </div>
                                                   </td>
                                                )}
                                                <td className={`py-4 px-3 text-center bg-white border-y border-r border-slate-100 ${showHumidity?'':'rounded-r-2xl'}`}>
@@ -1613,8 +1622,8 @@
                                            <div key={`cycle-${i}`} className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
                                               <div className="text-[9px] font-black text-slate-500 mb-3 uppercase tracking-widest flex justify-between">Group {i+1} <button onClick={()=>{const n=[...cycles]; n.splice(i,1); setCycles(n);}} className="text-rose-400 underline italic">Delete / 刪除</button></div>
                                               <div className="grid grid-cols-3 gap-2 text-[10px]">
-                                                 <div className="space-y-1"><span>From / 起點</span><input value={c.start} onChange={e=>{const n=[...cycles]; n[i].start=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
-                                                 <div className="space-y-1"><span>To / 迄點</span><input value={c.end} onChange={e=>{const n=[...cycles]; n[i].end=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
+                                                 <div className="space-y-1"><span>From Step / 起點</span><input value={c.start} onChange={e=>{const n=[...cycles]; n[i].start=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
+                                                 <div className="space-y-1"><span>To Step / 迄點</span><input value={c.end} onChange={e=>{const n=[...cycles]; n[i].end=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
                                                  <div className="space-y-1"><span>Loops / 次數</span><input value={c.count} onChange={e=>{const n=[...cycles]; n[i].count=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
                                               </div>
                                            </div>
