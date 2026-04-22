@@ -1,7 +1,10 @@
-const CACHE_NAME = 'hqa-portal-v1.4.6';
+const CACHE_NAME = 'hqa-portal-v1.4.7';
 const assets = [
   './',
   './index.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png',
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',

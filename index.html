@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HQA Portal v1.4.6 | REL Laboratory</title>
+    <title>HQA Portal v1.4.7 | REL Laboratory</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#4f46e5">
     <link rel="icon" href="https://lucide.dev/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -128,7 +131,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.4.6';
+      const APP_VERSION = 'v1.4.7';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
