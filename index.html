@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HQA Portal v1.4.2 | REL Laboratory</title>
+    <title>HQA Portal v1.4.3 | REL Laboratory</title>
     <link rel="icon" href="https://lucide.dev/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -45,7 +45,7 @@
       Truck, FolderOpen, Filter, Settings, PieChart, RefreshCw, 
       FolderSearch, AlertCircle, FolderLock, Package,
       CheckCircle, FileText, Layers, LayoutList, RotateCcw,
-      HelpCircle, Calculator, Wrench, Activity, Info
+      HelpCircle, Calculator, Wrench, Activity, Info, Clock
     } = Lucide;
 
     const DB_NAME = 'HQA_LocalDB';
@@ -127,7 +127,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.4.2';
+      const APP_VERSION = 'v1.4.3';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -1372,222 +1372,172 @@
                          )}
 
                          {activeTool === 'prof' && (
-                           <div className="animate-in zoom-in-95 duration-500">
-                             <div className="bg-white rounded-[3rem] p-10 shadow-2xl border border-indigo-100 overflow-hidden relative">
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-                                   <div>
-                                      <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">Profile Visualizer</h4>
-                                      <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mt-2 italic">Chamber Program Logic Pre-visualisation</p>
-                                   </div>
-                                   <div className="flex flex-wrap gap-4 items-center">
-                                       <button onClick={exportProfileToExcel} className="flex items-center gap-2 px-4 py-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-200 hover:bg-emerald-100 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm">
-                                          <FolderSearch size={16} /> Export
-                                       </button>
-                                       <label className="flex items-center gap-2 px-4 py-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-200 hover:bg-amber-100 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm cursor-pointer">
-                                          <FolderOpen size={16} /> Import
-                                          <input type="file" accept=".xlsx, .xls" onChange={importProfileFromExcel} className="hidden" />
-                                       </label>
-                                       <label className="flex items-center gap-3 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-400 transition-all shadow-sm">
-                                          <input type="checkbox" checked={startAt25} onChange={e=>setStartAt25(e.target.checked)} className="w-5 h-5 accent-indigo-600 rounded-lg"/>
-                                          <div className="flex flex-col">
-                                             <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Start from 25°C</span>
-                                          </div>
-                                       </label>
-                                       <label className="flex items-center gap-3 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer hover:bg-white hover:border-emerald-400 transition-all shadow-sm">
-                                          <input type="checkbox" checked={showHumidity} onChange={e=>setShowHumidity(e.target.checked)} className="w-5 h-5 accent-emerald-500 rounded-lg"/>
-                                          <div className="flex flex-col">
-                                             <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Humidity Line</span>
-                                          </div>
-                                       </label>
-                                       <button onClick={()=>setProfileSteps([...profileSteps, { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }])} className="px-8 py-4 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 transition-all shadow-indigo-200/50">+ Add Step</button>
-                                       <button onClick={()=>{setProfileSteps([{ id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }, { id: generateId(), type: 'Soak', time: '60', temp: '85', humidity: '85', mode: 'time', slope: '2' }, { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }]); setCycles([{start:'',end:'',count:1},{start:'',end:'',count:1}]);}} className="p-4 bg-slate-100 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-inner"><RotateCcw size={24}/></button>
+                           <div className="animate-in zoom-in-95 duration-500 space-y-8">
+                             {/* TOP ROW: 4:1 Ratio */}
+                             <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                               {/* SVG Chart (4/5) */}
+                               <div className="xl:col-span-4 bg-slate-900 rounded-[3rem] p-8 shadow-2xl relative border border-slate-800 overflow-hidden">
+                                  <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                      <h4 className="text-xl font-black text-white uppercase tracking-tighter">Profile Visualization</h4>
+                                      <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest italic">Chamber Logic Path</p>
                                     </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 xl:grid-cols-4 gap-12">
-                                   <div className="xl:col-span-1 space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
-                                      {profileSteps.map((s, idx) => (
-                                         <div key={s.id} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 group hover:border-indigo-400 hover:bg-indigo-50 transition-all shadow-sm relative overflow-hidden">
-                                            <div className="flex justify-between items-center mb-4">
-                                               <span className="text-xs font-black text-indigo-400">STEP {idx+1}</span>
-                                               <button onClick={()=>{const n = [...profileSteps]; n.splice(idx,1); setProfileSteps(n);}} className="p-2 text-slate-300 hover:text-rose-500 transition-all"><Trash2 size={16}/></button>
-                                            </div>
-                                            
-                                            <div className="space-y-4">
-                                               <div className="grid grid-cols-2 gap-3">
-                                                  <select value={s.type} onChange={e=>{const n = [...profileSteps]; n[idx].type=e.target.value; setProfileSteps(n);}} className="bg-white border rounded-xl p-3 text-[10px] font-black uppercase text-indigo-600 outline-none shadow-sm flex-1">
-                                                     <option value="Ramp">Ramp</option>
-                                                     <option value="Soak">Soak</option>
-                                                  </select>
-                                                  {s.type === 'Ramp' ? (
-                                                     <button onClick={()=>{const n=[...profileSteps]; n[idx].mode = n[idx].mode === 'slope' ? 'time':'slope'; setProfileSteps(n);}} className={`border rounded-xl px-2 text-[9px] font-black uppercase transition-all shadow-sm ${s.mode === 'slope' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500'}`}>
-                                                        {s.mode === 'slope' ? '📈 Slope' : '🕒 Time'}
-                                                     </button>
-                                                  ) : (
-                                                     <div className="bg-slate-100 rounded-xl flex items-center justify-center text-[9px] font-black text-slate-400 uppercase">Soak</div>
-                                                  )}
-                                               </div>
+                                    <div className="flex gap-4">
+                                       <button onClick={()=>setProfileSteps([...profileSteps, { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }])} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-indigo-600 transition-all shadow-lg">+ New Step</button>
+                                       <div className="flex items-center gap-3 text-white/50 text-[10px] font-black uppercase">
+                                          <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-indigo-500"></div> Temp</span>
+                                          {showHumidity && <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full border border-emerald-400 border-dashed"></div> Humid</span>}
+                                       </div>
+                                    </div>
+                                  </div>
 
-                                               <div className="space-y-3">
-                                                  <div className="bg-white p-3 rounded-xl shadow-sm border flex items-center gap-3">
-                                                     <span className="text-[9px] font-black text-slate-400 uppercase w-12 shrink-0">{s.mode === 'slope' && s.type === 'Ramp' ? 'Slope' : 'Time'}</span>
-                                                     <input type="text" inputMode="decimal" value={s.mode === 'slope' && s.type === 'Ramp' ? s.slope : s.time} onChange={e=>{
-                                                        const val = e.target.value.replace(/[^\d.]/g, '');
-                                                        const n = [...profileSteps]; 
-                                                        if(s.mode === 'slope' && s.type === 'Ramp') n[idx].slope=val; else n[idx].time=val;
-                                                        setProfileSteps(n);
-                                                     }} className="bg-transparent font-black text-slate-900 text-sm outline-none flex-1 min-w-0" placeholder={s.mode === 'slope' ? '℃/min' : 'min'}/>
-                                                     <span className="text-[9px] font-bold text-slate-300 uppercase shrink-0">{s.mode === 'slope' && s.type === 'Ramp' ? '℃/m' : 'min'}</span>
-                                                  </div>
-
-                                                  <div className="bg-white p-3 rounded-xl shadow-sm border flex items-center gap-3">
-                                                     <span className="text-[9px] font-black text-slate-400 uppercase w-12 shrink-0">Target</span>
-                                                     <input type="text" inputMode="decimal" value={s.temp} onChange={e=>{
-                                                        const val = e.target.value.replace(/[^\d.]/g, '');
-                                                        const n = [...profileSteps]; n[idx].temp=val; setProfileSteps(n);
-                                                     }} className="bg-transparent font-black text-slate-900 text-sm outline-none flex-1 min-w-0"/>
-                                                     <span className="text-[10px] font-black text-indigo-600 uppercase shrink-0">℃</span>
-                                                  </div>
-
-                                                  {showHumidity && (
-                                                     <div className="bg-white p-3 rounded-xl shadow-sm border flex items-center gap-3 border-emerald-100 animate-in fade-in slide-in-from-top-2">
-                                                        <span className="text-[9px] font-black text-emerald-400 uppercase w-12 shrink-0">Humid</span>
-                                                        <input type="text" inputMode="decimal" value={s.humidity} onChange={e=>{
-                                                            const val = e.target.value.replace(/[^\d.]/g, '');
-                                                            const n = [...profileSteps]; n[idx].humidity=val; setProfileSteps(n);
-                                                        }} className="bg-transparent font-black text-emerald-600 text-sm outline-none flex-1 min-w-0" placeholder="%RH"/>
-                                                        <span className="text-[9px] font-bold text-emerald-300 uppercase shrink-0">%RH</span>
-                                                     </div>
-                                                  )}
-                                               </div>
-                                            </div>
-                                         </div>
-                                      ))}
-                                   </div>
-
-                                   <div className="xl:col-span-1 mt-4 p-6 bg-slate-100 rounded-[2rem] border border-slate-200 shadow-inner">
-                                      <h5 className="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-4">Cycle Configuration</h5>
-                                      {cycles.map((c, i) => (
-                                         <div key={`cycle-${i}`} className="bg-white p-4 rounded-2xl shadow-sm mb-4 last:mb-0 border border-slate-200">
-                                            <div className="text-[10px] font-black text-indigo-500 mb-2">GROUP {i+1}</div>
-                                            <div className="grid grid-cols-3 gap-2">
-                                               <div className="flex flex-col">
-                                                  <span className="text-[8px] font-bold text-slate-400 uppercase">From Step</span>
-                                                  <select value={c.start} onChange={e=>{const n=[...cycles]; n[i].start=e.target.value; setCycles(n);}} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold outline-none">
-                                                     <option value="">-</option>
-                                                     {profileSteps.map((_, idx) => <option key={idx} value={idx+1}>{idx+1}</option>)}
-                                                  </select>
-                                               </div>
-                                               <div className="flex flex-col">
-                                                  <span className="text-[8px] font-bold text-slate-400 uppercase">To Step</span>
-                                                  <select value={c.end} onChange={e=>{const n=[...cycles]; n[i].end=e.target.value; setCycles(n);}} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold outline-none">
-                                                     <option value="">-</option>
-                                                     {profileSteps.map((_, idx) => <option key={idx} value={idx+1}>{idx+1}</option>)}
-                                                  </select>
-                                               </div>
-                                               <div className="flex flex-col">
-                                                  <span className="text-[8px] font-bold text-slate-400 uppercase">Loops</span>
-                                                  <input type="number" min="1" value={c.count} onChange={e=>{const n=[...cycles]; n[i].count=parseInt(e.target.value)||1; setCycles(n);}} className="bg-slate-50 border p-2 rounded-xl text-[10px] font-bold outline-none" />
-                                               </div>
-                                            </div>
-                                         </div>
-                                      ))}
-                                   </div>
-                                   
-                                   <div className="xl:col-span-3 bg-slate-900 rounded-[3rem] p-10 shadow-2xl relative min-h-[500px] flex items-center justify-center border border-slate-800">
-                                      <svg viewBox="0 0 800 450" className="w-full h-full drop-shadow-[0_0_30px_rgba(79,70,229,0.4)]">
-                                         <defs>
-                                            <linearGradient id="lineGradWide" x1="0%" y1="0%" x2="0%" y2="100%">
-                                               <stop offset="0%" stopColor="#818cf8" stopOpacity="0.9" />
-                                               <stop offset="100%" stopColor="#4f46e5" stopOpacity="0.2" />
-                                            </linearGradient>
-                                            <filter id="glow">
-                                               <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
-                                               <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                                            </filter>
-                                         </defs>
-                                         {[0, 112, 225, 337, 450].map(y => <line key={y} x1="60" y1={y} x2="760" y2={y} stroke="#1e293b" strokeWidth="1" strokeDasharray="8,8" />)}
-                                         {[60, 235, 410, 585, 760].map(x => <line key={x} x1={x} y1="0" x2={x} y2="450" stroke="#1e293b" strokeWidth="1" />)}
+                                  <div className="relative aspect-[25/8] w-full">
+                                    <svg viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet" className="w-full h-full">
+                                      <defs>
+                                        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#818cf8" stopOpacity="0.8" /><stop offset="100%" stopColor="#4f46e5" stopOpacity="0.1" /></linearGradient>
+                                      </defs>
+                                      {[0, 0.25, 0.5, 0.75, 1].map(p => <line key={p} x1="60" y1={30 + p*260} x2="960" y2={30 + p*260} stroke="#1e293b" strokeWidth="1" strokeDasharray="6,6" />)}
+                                      
+                                      {(() => {
+                                         let unrolled = [...profileSteps];
+                                         cycles.forEach(c => {
+                                            const s = parseInt(c.start); const e = parseInt(c.end); const count = parseInt(c.count);
+                                            if (!isNaN(s) && !isNaN(e) && s <= e && count > 1 && s >= 1 && e <= unrolled.length) {
+                                               const pre = unrolled.slice(0, s-1); const loop = unrolled.slice(s-1, e); const repeated = []; for(let i=0; i<count; i++) repeated.push(...loop);
+                                               unrolled = [...pre, ...repeated, ...unrolled.slice(e)];
+                                            }
+                                         });
+                                         let b = 25;
+                                         const calc = [];
+                                         unrolled.forEach(s => {
+                                            let m = parseFloat(s.time) || 0; const t = parseFloat(s.temp) || 0;
+                                            if (s.mode === 'slope' && s.type === 'Ramp') m = Math.abs(t - b) / (parseFloat(s.slope) || 1);
+                                            calc.push({ ...s, m, t }); b = t;
+                                         });
+                                         const tt = calc.reduce((acc, s) => acc + s.m, 0) + (startAt25 ? 5 : 1);
+                                         const maxV = Math.max(...calc.map(s => s.t), 100) + 15;
+                                         const minV = Math.min(...calc.map(s => s.t), 0) - 15;
+                                         const rangeV = maxV - minV;
+                                         const sX = 900 / tt; const sY = 260 / rangeV;
+                                         const toX = (t) => 60 + t * sX; const toY = (v) => 290 - (v - minV) * sY;
                                          
-                                         {(() => {
-                                            let unrolledSteps = [...profileSteps];
-                                            cycles.forEach(c => {
-                                               const s = parseInt(c.start);
-                                               const e = parseInt(c.end);
-                                               const count = parseInt(c.count);
-                                               if (!isNaN(s) && !isNaN(e) && s <= e && count > 1 && s >= 1 && e <= unrolledSteps.length) {
-                                                  const pre = unrolledSteps.slice(0, s - 1);
-                                                  const loopBlock = unrolledSteps.slice(s - 1, e);
-                                                  const post = unrolledSteps.slice(e);
-                                                  const repeatedBlock = [];
-                                                  for(let i=0; i<count; i++) repeatedBlock.push(...loopBlock);
-                                                  unrolledSteps = [...pre, ...repeatedBlock, ...post];
-                                               }
-                                            });
+                                         let curT = startAt25 ? 5 : 0;
+                                         let dL = `M ${toX(0)} ${toY(startAt25 ? 25 : calc[0]?.t || 0)}`;
+                                         if(startAt25) dL += ` L ${toX(5)} ${toY(25)}`;
+                                         let dH = `M ${toX(0)} ${290 - (parseFloat(calc[0]?.humidity)||0) * 2.5}`;
+                                         const pts = [];
+                                         calc.forEach(s => {
+                                            curT += s.m; const tx = toX(curT); const ty = toY(s.t); const hy = 290 - (parseFloat(s.humidity)||0) * 2.5;
+                                            dL += ` L ${tx} ${ty}`; dH += ` L ${tx} ${hy}`;
+                                            pts.push({ x: tx, ty, hy, t: s.t, h: s.humidity });
+                                         });
 
-                                            let currentBaseTemp = 25;
-                                            const stepsWithCalcTime = [];
-                                            unrolledSteps.forEach(s => {
-                                               let calcTime = parseFloat(s.time) || 0;
-                                               const targetT = parseFloat(s.temp) || 0;
-                                               if (s.mode === 'slope' && s.type === 'Ramp') {
-                                                  const slope = parseFloat(s.slope) || 0.1;
-                                                  calcTime = Math.abs(targetT - currentBaseTemp) / slope;
-                                               }
-                                               stepsWithCalcTime.push({ ...s, calcTime, targetT });
-                                               currentBaseTemp = targetT;
-                                            });
+                                         return (
+                                           <React.Fragment>
+                                              <path d={dL} fill="none" stroke="url(#lineGrad)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                                              {showHumidity && <path d={dH} fill="none" stroke="#10b981" strokeWidth="2" strokeDasharray="6,3" opacity="0.6" />}
+                                              {pts.map((p, i) => (
+                                                <g key={i}>
+                                                  <circle cx={p.x} cy={p.ty} r="3" fill="#818cf8" />
+                                                  <text x={p.x} y={p.ty - 10} fill="#818cf8" fontSize="10" fontWeight="999" textAnchor="middle">{p.t}C</text>
+                                                </g>
+                                              ))}
+                                           </React.Fragment>
+                                         );
+                                      })()}
+                                    </svg>
+                                  </div>
+                               </div>
 
-                                            const totalTime = stepsWithCalcTime.reduce((acc, s) => acc + s.calcTime, 0) + (startAt25 ? 5 : 1);
-                                            const maxT = Math.max(...stepsWithCalcTime.map(s => s.targetT), startAt25 ? 25 : 0, 100) + 20;
-                                            const scaleX = 680 / totalTime;
-                                            const scaleY = 380 / maxT;
+                               {/* Total Duration (1/5) */}
+                               <div className="xl:col-span-1 bg-white rounded-[3rem] p-8 shadow-2xl border border-slate-100 flex flex-col justify-center items-center text-center">
+                                  <div className="mb-4 p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Clock size={32} /></div>
+                                  <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Estimated Duration</h5>
+                                  {(() => {
+                                     let unrolled = [...profileSteps];
+                                     cycles.forEach(c => {
+                                        const s = parseInt(c.start); const e = parseInt(c.end); const count = parseInt(c.count);
+                                        if (!isNaN(s) && !isNaN(e) && s <= e && count > 1 && s >= 1 && e <= unrolled.length) {
+                                           const pre = unrolled.slice(0, s-1); const loop = unrolled.slice(s-1, e); const rep = []; for(let i=0; i<count; i++) rep.push(...loop);
+                                           unrolled = [...pre, ...rep, ...unrolled.slice(e)];
+                                        }
+                                     });
+                                     let b = 25;
+                                     const tt = unrolled.reduce((acc, s) => {
+                                        let m = parseFloat(s.time) || 0; const t = parseFloat(s.temp) || 0;
+                                        if (s.mode === 'slope' && s.type === 'Ramp') m = Math.abs(t - b) / (parseFloat(s.slope) || 1);
+                                        b = t; return acc + m;
+                                     }, 0) + (startAt25 ? 5 : 0);
+                                     const h = Math.floor(tt / 60); const m = Math.round(tt % 60);
+                                     return (
+                                       <div className="mt-2">
+                                         <div className="text-4xl font-black text-slate-800">{h}<span className="text-xl text-slate-300">h</span> {m}<span className="text-xl text-slate-300">m</span></div>
+                                         <div className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-widest">{Math.round(tt)} Total Minutes</div>
+                                       </div>
+                                     );
+                                  })()}
+                               </div>
+                             </div>
 
-                                            let currentX = 60;
-                                            let lastT = startAt25 ? 25 : (stepsWithCalcTime[0]?.targetT || 0);
-                                            let dTemp = `M 60 ${450 - lastT * scaleY}`;
-                                            let dHumid = `M 60 ${450 - (parseFloat(stepsWithCalcTime[0]?.humidity)||0) * 4.5}`;
-                                            
-                                            const points = [];
-                                            stepsWithCalcTime.forEach((s, idx) => {
-                                               currentX += s.calcTime * scaleX;
-                                               const targetY = 450 - s.targetT * scaleY;
-                                               const humidY = 450 - (parseFloat(s.humidity)||0) * 4.5;
-                                               dTemp += ` L ${currentX} ${targetY}`;
-                                               dHumid += ` L ${currentX} ${humidY}`;
-                                               points.push({ x: currentX, ty: targetY, hy: humidY, temp: s.targetT, hum: s.humidity });
-                                            });
-
-                                            return (
-                                              <React.Fragment>
-                                                 <text x="30" y="225" fill="#475569" fontSize="11" fontWeight="black" transform="rotate(-90 30,225)" textAnchor="middle">TEMP (℃)</text>
-                                                 {showHumidity && <text x="775" y="225" fill="#10b981" fontSize="11" fontWeight="black" transform="rotate(90 775,225)" textAnchor="middle">HUMIDITY (%RH)</text>}
-                                                 <text x="400" y="440" fill="#475569" fontSize="11" fontWeight="black" textAnchor="middle">TIME DURATION (MIN)</text>
-                                                 {[0, 25, 50, 75, 100].map(v => (
-                                                   <text key={v} x="50" y={450 - (v * scaleY)} fill="#475569" fontSize="9" fontWeight="bold" textAnchor="end">{v}</text>
-                                                 ))}
-                                                 {showHumidity && [0, 20, 40, 60, 80, 100].map(v => (
-                                                   <text key={v} x="750" y={450 - (v * 4.5)} fill="#10b981" fontSize="9" fontWeight="bold" textAnchor="start">{v}</text>
-                                                 ))}
-                                                 <path d={dTemp} fill="none" stroke="url(#lineGradWide)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
-                                                 {showHumidity && <path d={dHumid} fill="none" stroke="#10b981" strokeWidth="3" strokeDasharray="8,4" strokeLinecap="round" fill="none" />}
-                                                 {points.map((p, i) => (
-                                                    <g key={i}>
-                                                       <rect x={p.x-4} y={p.ty-4} width="8" height="8" fill="#818cf8" transform={`rotate(45 ${p.x} ${p.ty})`} />
-                                                       <text x={p.x} y={p.ty - 18} fill="#818cf8" fontSize="12" fontWeight="black" textAnchor="middle">{p.temp}℃</text>
-                                                       {showHumidity && <text x={p.x} y={p.hy + 20} fill="#10b981" fontSize="10" fontWeight="bold" textAnchor="middle">{p.hum}%</text>}
-                                                    </g>
-                                                 ))}
-                                              </React.Fragment>
-                                            );
-                                          })()}
-                                      </svg>
-                                      <div className="absolute bottom-8 left-12 flex gap-8">
-                                         <span className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-indigo-500 shadow-[0_0_10px_rgba(79,70,229,0.8)]"></div><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Program Path</span></span>
-                                         <span className="flex items-center gap-3"><div className="w-4 h-[1px] bg-slate-700"></div><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Grid System</span></span>
-                                      </div>
+                             {/* BOTTOM ROW: 8:4 Ratio */}
+                             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                               {/* Step Definition (8/12) */}
+                               <div className="xl:col-span-8 bg-white rounded-[3rem] p-10 shadow-2xl border border-slate-100 min-h-[500px]">
+                                 <div className="flex justify-between items-center mb-8">
+                                   <div className="flex items-center gap-3">
+                                      <div className="p-3 bg-slate-100 rounded-xl text-slate-500"><LayoutList size={20} /></div>
+                                      <h5 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Step Definitions</h5>
                                    </div>
-                                </div>
+                                   <div className="flex gap-2">
+                                      <button onClick={exportProfileToExcel} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><FolderSearch size={20}/></button>
+                                      <label className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all cursor-pointer"><FolderOpen size={20}/><input type="file" accept=".xlsx, .xls" onChange={importProfileFromExcel} className="hidden" /></label>
+                                   </div>
+                                 </div>
+
+                                 <div className="max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+                                   <table className="w-full text-left border-separate border-spacing-y-2">
+                                      <thead><tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4"><th className="py-2 px-3 text-center w-12">No.</th><th className="py-2 px-4">Type</th><th className="py-2 px-4">Control</th><th className="py-2 px-4">Value</th><th className="py-2 px-4">Temp(C)</th><th className="py-2 px-3 text-center w-12">X</th></tr></thead>
+                                      <tbody>
+                                         {profileSteps.map((s, idx) => (
+                                            <tr key={s.id} className="group hover:bg-slate-50 transition-all">
+                                               <td className="py-4 px-3 text-center font-black text-indigo-400 text-xs rounded-l-2xl border-y border-l border-slate-100">{idx+1}</td>
+                                               <td className="py-4 px-4 border-y border-slate-100"><select value={s.type} onChange={e=>{const n = [...profileSteps]; n[idx].type=e.target.value; setProfileSteps(n);}} className="w-full bg-white border rounded-lg p-2 text-xs font-bold outline-none"><option value="Ramp">Ramp</option><option value="Soak">Soak</option></select></td>
+                                               <td className="py-4 px-4 border-y border-slate-100">{s.type === 'Ramp' ? (<button onClick={()=>{const n=[...profileSteps]; n[idx].mode = n[idx].mode === 'slope' ? 'time':'slope'; setProfileSteps(n);}} className={`w-full py-2 rounded-lg text-[9px] font-black uppercase transition-all ${s.mode === 'slope' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{s.mode === 'slope' ? 'Slope' : 'Time'}</button>) : '-'}</td>
+                                               <td className="py-4 px-4 border-y border-slate-100"><input type="text" value={s.mode==='slope'&&s.type==='Ramp'?s.slope:s.time} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; if(s.mode==='slope'&&s.type==='Ramp') n[idx].slope=v; else n[idx].time=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 text-xs font-bold outline-none" /></td>
+                                               <td className="py-4 px-4 border-y border-slate-100"><input type="text" value={s.temp} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; n[idx].temp=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 text-xs font-bold outline-none" /></td>
+                                               <td className="py-4 px-3 text-center bg-white rounded-r-2xl border-y border-r border-slate-100"><button onClick={()=>{const n=[...profileSteps]; n.splice(idx,1); setProfileSteps(n);}} className="p-2 text-slate-300 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td>
+                                            </tr>
+                                         ))}
+                                      </tbody>
+                                   </table>
+                                 </div>
+                               </div>
+
+                               {/* Cycle / Options (4/12) */}
+                               <div className="xl:col-span-4 flex flex-col gap-8">
+                                  <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border border-slate-800 text-white">
+                                     <div className="flex items-center gap-3 mb-8"><div className="p-2 bg-indigo-600/20 rounded-xl text-indigo-400"><RefreshCw size={20}/></div><h5 className="text-sm font-black uppercase tracking-widest">Cycle Manager</h5></div>
+                                     <div className="space-y-4">
+                                        {cycles.map((c, i) => (
+                                           <div key={`cycle-${i}`} className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
+                                              <div className="text-[9px] font-black text-slate-500 mb-3 uppercase tracking-widest flex justify-between">Group {i+1} <button onClick={()=>{const n=[...cycles]; n.splice(i,1); setCycles(n);}} className="text-rose-400">DEL</button></div>
+                                              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                                                 <div className="space-y-1"><span>From</span><input value={c.start} onChange={e=>{const n=[...cycles]; n[i].start=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
+                                                 <div className="space-y-1"><span>To</span><input value={c.end} onChange={e=>{const n=[...cycles]; n[i].end=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
+                                                 <div className="space-y-1"><span>Loops</span><input value={c.count} onChange={e=>{const n=[...cycles]; n[i].count=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
+                                              </div>
+                                           </div>
+                                        ))}
+                                        <button onClick={()=>setCycles([...cycles, { start: '', end: '', count: 10 }])} className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-[9px] font-black uppercase text-slate-500 hover:border-indigo-500 transition-all">+ Add Loop</button>
+                                     </div>
+                                  </div>
+
+                                  <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 flex flex-col gap-4">
+                                     <h5 className="text-[10px] font-black text-slate-300 uppercase tracking-widest border-b pb-4">Display Options</h5>
+                                     <label className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Start @ 25C</span><input type="checkbox" checked={startAt25} onChange={e=>setStartAt25(e.target.checked)} className="w-5 h-5 accent-indigo-600"/></label>
+                                     <label className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Show Humidity</span><input type="checkbox" checked={showHumidity} onChange={e=>setShowHumidity(e.target.checked)} className="w-5 h-5 accent-emerald-500"/></label>
+                                  </div>
+                               </div>
                              </div>
                            </div>
                          )}
