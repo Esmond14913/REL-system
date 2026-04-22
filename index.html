@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HQA Portal v1.5.1 | REL Laboratory</title>
+    <title>HQA Portal v1.5.2 | REL Laboratory</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="theme-color" content="#4f46e5">
@@ -145,7 +145,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.5.1';
+      const APP_VERSION = 'v1.5.2';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -195,7 +195,34 @@
       const [stFailures, setStFailures] = useState(0); 
       const [stIndividualTimes, setStIndividualTimes] = useState(''); 
       const [stTestDuration, setStTestDuration] = useState(1000);
-      const [convVal, setConvVal] = useState(1);
+      
+      const [unitValues, setUnitValues] = useState({
+        length: { mm: 1, mil: 39.3701, inch: 0.0394 },
+        force: { kgf: 1, n: 9.8067, lbf: 2.2046 },
+        mass: { kg: 1, lb: 2.2046, oz: 35.274 }
+      });
+
+      const handleUnitChange = (category, unit, value) => {
+        const val = parseFloat(value) || 0;
+        const newGroup = { ...unitValues[category] };
+        newGroup[unit] = value; 
+
+        const ratios = {
+          length: { mm: 1, mil: 39.3701, inch: 0.0393701 },
+          force: { kgf: 1, n: 9.80665, lbf: 2.20462 },
+          mass: { kg: 1, lb: 2.20462, oz: 35.274 }
+        };
+
+        const baseVal = val / ratios[category][unit];
+        Object.keys(ratios[category]).forEach(u => {
+          if (u !== unit) {
+            newGroup[u] = parseFloat((baseVal * ratios[category][u]).toFixed(4));
+          }
+        });
+
+        setUnitValues({ ...unitValues, [category]: newGroup });
+      };
+
       const [convType, setConvType] = useState('length'); 
       const [profileSteps, setProfileSteps] = useState([
         { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' },
@@ -307,7 +334,6 @@
            const reqTimePerSample = (targetMTBF * critVal) / (2 * n * af);
            return { af, targetMTBF, reqTimePerSample, critVal };
         } else {
-           // Assessment Mode: Individual Times
            const times = stIndividualTimes.split(/[\s,]+/).map(t => parseFloat(t)).filter(t => !isNaN(t));
            if (times.length > 0) {
               n = times.length;
@@ -1301,7 +1327,6 @@
                           {activeTool === 'mtbf' && (
                              <div className="max-w-7xl mx-auto space-y-6">
                                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                                   {/* Part 1: Acceleration Factor (AF) */}
                                    <div className="xl:col-span-4 bg-white rounded-[2.5rem] p-8 shadow-xl border border-indigo-50 relative overflow-hidden flex flex-col">
                                       <div className="flex items-center justify-between mb-8">
                                          <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100"><Wrench size={24}/></div>
@@ -1348,7 +1373,6 @@
                                       </div>
                                    </div>
 
-                                   {/* Part 2: MTBF Planner / Assessor */}
                                    <div className="xl:col-span-8 bg-[#0f172a] rounded-[2.5rem] p-10 shadow-2xl border border-slate-800 relative overflow-hidden">
                                       <div className="flex items-center justify-between mb-8">
                                          <div className="p-4 bg-indigo-500 rounded-2xl shadow-lg shadow-indigo-900/50 text-white"><Calculator size={28}/></div>
@@ -1434,7 +1458,6 @@
                                    </div>
                                 </div>
 
-                                {/* Part 3: Purpose Summary Card */}
                                 <div className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-200 shadow-inner relative overflow-hidden group">
                                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                                    <div className="flex items-start gap-6">
@@ -1455,53 +1478,71 @@
                           )}
 
                          {activeTool === 'conv' && (
-                           <div className="max-w-3xl mx-auto">
-                              <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-indigo-100 flex flex-col group transition-all">
-                                <div className="flex items-center justify-between mb-12">
-                                   <div className="p-5 bg-slate-900 text-white rounded-2xl shadow-xl"><Activity size={32}/></div>
-                                   <div className="flex bg-slate-100 p-1.5 rounded-2xl shadow-inner border">
-                                      {['length', 'force', 'mass'].map(t=>(
-                                        <button key={t} onClick={()=>setConvType(t)} className={`px-6 py-3 text-[10px] font-black uppercase rounded-xl transition-all ${convType === t ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`}>{t}</button>
-                                      ))}
-                                   </div>
-                                </div>
-                                <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Engineering Converter / 單位換算</h4>
-                                <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mb-12">實驗室物理單位一鍵換算器</p>
-
-                                <div className="space-y-8">
-                                   <div className="p-10 bg-indigo-50 rounded-[2.5rem] border border-indigo-100 mb-4 transition-all focus-within:shadow-lg focus-within:bg-white focus-within:-translate-y-1">
-                                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] block mb-4">Base Value / 輸入數值</span>
-                                      <input type="number" value={convVal} onChange={e=>setConvVal(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-5xl outline-none"/>
-                                   </div>
-                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      {(convType === 'length' ? [
-                                        { unit: 'mm', label: 'Millimeters', factor: 1 },
-                                        { unit: 'mil', label: 'Mils (1/1000 in)', factor: 39.3701 },
-                                        { unit: 'inch', label: 'Inches', factor: 0.0393701 }
-                                      ] : convType === 'force' ? [
-                                        { unit: 'kgf', label: 'Kilogram-force', factor: 1 },
-                                        { unit: 'N', label: 'Newtons', factor: 9.80665 },
-                                        { unit: 'lbf', label: 'Pound-force', factor: 2.20462 }
-                                      ] : [
-                                        { unit: 'kg', label: 'Kilograms', factor: 1 },
-                                        { unit: 'lb', label: 'Pounds', factor: 2.20462 },
-                                        { unit: 'oz', label: 'Ounces', factor: 35.274 }
-                                      ]).map(u => (
-                                        <div key={u.unit} className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border hover:border-indigo-400 transition-all group">
-                                           <div>
-                                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">{u.label}</span>
-                                              <span className="text-xs font-bold text-slate-300">1 {convType==='length'?'mm':convType==='force'?'kgf':'kg'} = {u.factor} {u.unit}</span>
-                                           </div>
-                                           <div className="text-right">
-                                              <span className="block font-black text-indigo-600 text-2xl tracking-tighter">{(convVal * u.factor).toFixed(4)}</span>
-                                              <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">{u.unit}</span>
-                                           </div>
+                            <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in zoom-in duration-500">
+                               <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-indigo-50 relative overflow-hidden">
+                                  <div className="flex items-center justify-between mb-10">
+                                     <div className="flex items-center gap-4">
+                                        <div className="p-4 bg-slate-900 text-white rounded-2xl shadow-xl"><Activity size={28}/></div>
+                                        <div>
+                                           <h4 className="text-3xl font-black text-slate-800 tracking-tighter uppercase">Engineering Converter / 單位換算</h4>
+                                           <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em]">Matrix Multi-way Unit Conversion / 矩陣式多向單位換算</p>
                                         </div>
-                                      ))}
-                                   </div>
-                                </div>
-                              </div>
-                           </div>
+                                     </div>
+                                  </div>
+
+                                  <div className="space-y-12">
+                                     {[
+                                       { id: 'length', zh: '長度 / Length', units: [
+                                          { key: 'mm', label: 'Millimeters', zh: '毫米', ratio: '1 mm = 1 mm' },
+                                          { key: 'mil', label: 'Mils (1/1000 in)', zh: '密耳', ratio: '1 mm = 39.3701 mil' },
+                                          { key: 'inch', label: 'Inches', zh: '英吋', ratio: '1 mm = 0.03937 inch' }
+                                       ]},
+                                       { id: 'force', zh: '力量 / Force', units: [
+                                          { key: 'kgf', label: 'Kilogram-force', zh: '公斤重', ratio: '1 kgf = 1 kgf' },
+                                          { key: 'n', label: 'Newtons', zh: '牛頓', ratio: '1 kgf = 9.8067 N' },
+                                          { key: 'lbf', label: 'Pound-force', zh: '磅力', ratio: '1 kgf = 2.2046 lbf' }
+                                       ]},
+                                       { id: 'mass', zh: '重量 / Mass', units: [
+                                          { key: 'kg', label: 'Kilograms', zh: '公斤', ratio: '1 kg = 1 kg' },
+                                          { key: 'lb', label: 'Pounds', zh: '磅', ratio: '1 kg = 2.2046 lb' },
+                                          { key: 'oz', label: 'Ounces', zh: '盎司', ratio: '1 kg = 35.274 oz' }
+                                       ]}
+                                     ].map(group => (
+                                       <div key={group.id} className="space-y-6 p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100">
+                                          <div className="flex items-center gap-3 px-2">
+                                             <div className="w-1.5 h-6 bg-indigo-500 rounded-full"></div>
+                                             <h5 className="text-lg font-black text-slate-800 uppercase tracking-tight">{group.zh}</h5>
+                                          </div>
+                                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                             {group.units.map(u => (
+                                               <div key={u.key} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all group focus-within:ring-2 focus-within:ring-indigo-500/20">
+                                                  <div className="flex justify-between items-start mb-4">
+                                                     <div>
+                                                        <span className="text-[13px] font-black text-slate-400 uppercase tracking-widest block">{u.label}</span>
+                                                        <span className="text-[11px] font-bold text-indigo-500/70">{u.zh}</span>
+                                                     </div>
+                                                     <span className="px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-tighter group-hover:bg-indigo-600 group-hover:text-white transition-colors">{u.key}</span>
+                                                  </div>
+                                                  <div className="relative">
+                                                     <input 
+                                                        type="number" 
+                                                        value={unitValues[group.id][u.key]} 
+                                                        onChange={(e)=>handleUnitChange(group.id, u.key, e.target.value)}
+                                                        className="w-full bg-yellow-50 p-4 rounded-2xl font-black text-slate-900 text-2xl outline-none border-2 border-transparent focus:border-yellow-400 focus:bg-white transition-all shadow-inner"
+                                                     />
+                                                     <div className="mt-3 px-1">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ratio / 換算比例</p>
+                                                        <p className="text-[11px] font-black text-indigo-600 italic mt-0.5">{u.ratio}</p>
+                                                     </div>
+                                                  </div>
+                                               </div>
+                                             ))}
+                                          </div>
+                                       </div>
+                                     ))}
+                                  </div>
+                               </div>
+                            </div>
                          )}
 
                          {activeTool === 'prof' && (
