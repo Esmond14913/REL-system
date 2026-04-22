@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hqa-portal-v1.4.8';
+const CACHE_NAME = 'hqa-portal-v1.5.1';
 const assets = [
   './',
   './index.html',

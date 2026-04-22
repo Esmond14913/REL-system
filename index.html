@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HQA Portal v1.4.8 | REL Laboratory</title>
+    <title>HQA Portal v1.5.1-local | REL Laboratory</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="theme-color" content="#4f46e5">
@@ -99,6 +99,20 @@
       return m[String(s).toUpperCase()] || 'bg-slate-100 border-slate-200';
     }
 
+    // Advanced Statistics Helpers
+    const getNormalZ = (p) => {
+      const zLookup = { 0.90: 1.28155, 0.95: 1.64485, 0.99: 2.32635 };
+      if (zLookup[p.toFixed(2)]) return zLookup[p.toFixed(2)];
+      const t = Math.sqrt(-2 * Math.log(1 - p));
+      return t - (2.515517 + 0.802853 * t + 0.010328 * t * t) / (1 + 1.432788 * t + 0.189269 * t * t + 0.001308 * t * t * t);
+    };
+
+    const getChiSquareCrit = (p, df) => {
+      if (df === 2) return -2 * Math.log(1 - p); 
+      const z = getNormalZ(p);
+      return df * Math.pow(1 - 2 / (9 * df) + z * Math.sqrt(2 / (9 * df)), 3);
+    };
+
     function getResultStyle(r) {
       const m = { 
         Pass: 'bg-emerald-500 text-white shadow-sm', 
@@ -131,7 +145,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.4.8';
+      const APP_VERSION = 'v1.5.1-local';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -172,9 +186,15 @@
       const [afTuse, setAfTuse] = useState(25);
       const [afTtest, setAfTtest] = useState(85);
       const [afEa, setAfEa] = useState(0.7);
+      const [stMode, setStMode] = useState('planning'); // 'planning' or 'assessment'
+      const [stWarrantyYears, setStWarrantyYears] = useState(1);
+      const [stUsagePerDay, setStUsagePerDay] = useState(24);
       const [stMTBF, setStMTBF] = useState(100000);
       const [stCL, setStCL] = useState(90);
       const [stSamples, setStSamples] = useState(32);
+      const [stFailures, setStFailures] = useState(0); 
+      const [stIndividualTimes, setStIndividualTimes] = useState(''); 
+      const [stTestDuration, setStTestDuration] = useState(1000);
       const [convVal, setConvVal] = useState(1);
       const [convType, setConvType] = useState('length'); 
       const [profileSteps, setProfileSteps] = useState([
@@ -266,21 +286,63 @@
 
       const calcAF = useMemo(() => {
         const k = 8.61733e-5; 
-        const t1 = parseFloat(afTuse) + 273.15;
-        const t2 = parseFloat(afTtest) + 273.15;
-        const ea = parseFloat(afEa);
-        if (t1 <= 0 || t2 <= 0 || isNaN(ea)) return 1;
+        const t1 = (parseFloat(afTuse) || 25) + 273.15;
+        const t2 = (parseFloat(afTtest) || 85) + 273.15;
+        const ea = parseFloat(afEa) || 0.7;
+        if (t1 <= 0 || t2 <= 0) return 1;
         return Math.exp((ea / k) * (1/t1 - 1/t2));
       }, [afTuse, afTtest, afEa]);
 
-      const calcTestTime = useMemo(() => {
-        const cl = parseFloat(stCL) / 100;
-        const n = parseFloat(stSamples);
-        const mtbf = parseFloat(stMTBF);
+      const reliabilityResults = useMemo(() => {
         const af = calcAF;
-        if (n <= 0 || af <= 0 || cl >= 1) return 0;
-        return (mtbf * (-Math.log(1 - cl))) / (n * af);
-      }, [stMTBF, stCL, stSamples, calcAF]);
+        const cl = (Number(stCL) || 90) / 100;
+        const failures = Number(stFailures) || 0;
+        const critVal = getChiSquareCrit(cl, 2 * failures + 2);
+        
+        let n = Number(stSamples) || 1;
+        let totalHoursActual = 0;
+
+        if (stMode === 'planning') {
+           const targetMTBF = (Number(stWarrantyYears) || 1) * 365 * (Number(stUsagePerDay) || 24);
+           const reqTimePerSample = (targetMTBF * critVal) / (2 * n * af);
+           return { af, targetMTBF, reqTimePerSample, critVal };
+        } else {
+           // Assessment Mode: Individual Times
+           const times = stIndividualTimes.split(/[\s,]+/).map(t => parseFloat(t)).filter(t => !isNaN(t));
+           if (times.length > 0) {
+              n = times.length;
+              totalHoursActual = times.reduce((sum, t) => sum + t, 0);
+           } else {
+              totalHoursActual = n * (Number(stTestDuration) || 0);
+           }
+           const totalHoursEquivalent = totalHoursActual * af;
+           const demonstratedMTBF = (2 * totalHoursEquivalent) / critVal;
+           return { af, n, demonstratedMTBF, critVal, totalHoursActual, totalHoursEquivalent };
+        }
+      }, [calcAF, stCL, stSamples, stWarrantyYears, stUsagePerDay, stTestDuration, stFailures, stMode, stIndividualTimes]);
+
+      const mtbfPurpose = useMemo(() => {
+        const res = reliabilityResults;
+        const cl = stCL;
+        const af = res.af.toFixed(2);
+        const failures = stFailures;
+        
+        if (stMode === 'planning') {
+          const target = Math.round(res.targetMTBF).toLocaleString();
+          const req = Math.round(res.reqTimePerSample).toLocaleString();
+          return {
+            en: `This plan aims to verify a target MTBF of ${target} hours. With an acceleration factor of ${af}x, ${res.n || stSamples} samples must each complete ${req} hours of testing at ${afTtest}℃ to satisfy a ${cl}% confidence level.`,
+            zh: `本計畫旨在驗證產品是否達到 ${target} 小時的目標 MTBF。在加速因子為 ${af}x 的條件下，${res.n || stSamples} 隻樣品需在 ${afTtest}℃ 環境下各完成至少 ${req} 小時測試，以滿足 ${cl}% 的信心水準。`
+          };
+        } else {
+          const mtbf = Math.round(res.demonstratedMTBF).toLocaleString();
+          const total = Math.round(res.totalHoursActual).toLocaleString();
+          return {
+            en: `This assessment evaluates MTBF based on ${res.n} samples and ${total} accumulated hours. With ${failures} observed failures and a ${af}x acceleration factor, the product demonstrates an MTBF of ${mtbf} hours at ${afTuse}℃ with ${cl}% confidence.`,
+            zh: `本評估旨在根據 ${res.n} 隻樣品累積的 ${total} 測試小時與 ${failures} 次失效，在加速因子為 ${af}x 的條件下，證明產品在 ${afTuse}℃ 環境下的 MTBF 達到 ${mtbf} 小時（信心水準 ${cl}%）。`
+          };
+        }
+      }, [reliabilityResults, stMode, stCL, afTtest, afTuse, stFailures, stSamples]);
 
       const resetFilters = () => {
         setFilterProject('All'); setFilterStage('All'); setFilterBuild('All');
@@ -1215,8 +1277,7 @@
                     {activeTool === null ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-8 animate-in zoom-in-95 duration-300">
                          {[
-                           { id: 'af', icon: Wrench, title: 'Arrhenius AF', zh: '加速因子計算', desc: 'Calculate acceleration factors based on temperature and Ea.', color: 'bg-indigo-600' },
-                           { id: 'st', icon: Calculator, title: 'Success Test Planner', zh: '可靠度試驗計畫', desc: 'Determine required test time for target MTBF and CL.', color: 'bg-[#0f172a]' },
+                           { id: 'mtbf', icon: Calculator, title: 'MTBF Calculator', zh: '可用度與可靠度計算', desc: 'Accelerated life test planning & MTBF assessment with AF.', color: 'bg-[#0f172a]' },
                            { id: 'conv', icon: Activity, title: 'Unit Converter', zh: '工程單位換算', desc: 'Convert length, force, and mass units used in lab.', color: 'bg-slate-800' },
                            { id: 'prof', icon: LayoutList, title: 'Profile Visualizer', zh: '測試曲線模擬', desc: 'Visualize thermal and environmental test profiles.', color: 'bg-indigo-500' }
                          ].map(tool => (
@@ -1237,93 +1298,161 @@
                       </div>
                     ) : (
                       <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                         {activeTool === 'af' && (
-                           <div className="max-w-3xl mx-auto">
-                              <div className="bg-white rounded-[3rem] p-12 shadow-2xl border border-indigo-100 relative overflow-hidden">
-                                 <div className="relative z-10">
-                                   <div className="flex items-center justify-between mb-12">
-                                      <div className="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-200"><Wrench size={32}/></div>
-                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border px-4 py-2 rounded-full">Manual Calculation</span>
-                                   </div>
-                                   <h4 className="text-3xl font-black text-slate-800 mb-2 tracking-tighter uppercase">Acceleration Factor / 加速因子</h4>
-                                   <p className="text-xs text-indigo-600 font-bold uppercase tracking-[0.2em] mb-10">基於 Arrhenius 模型之加速率計算</p>
-                                   
-                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                                      <div className="space-y-6">
-                                         <div className="space-y-2">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Use Temp / 使用溫度 (℃)</span>
-                                            <div className="p-5 bg-slate-50 rounded-[1.5rem] border focus-within:border-indigo-400 transition-all"><input type="number" value={afTuse} onChange={e=>setAfTuse(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-2xl outline-none"/></div>
+                          {activeTool === 'mtbf' && (
+                             <div className="max-w-7xl mx-auto space-y-6">
+                                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                                   {/* Part 1: Acceleration Factor (AF) */}
+                                   <div className="xl:col-span-4 bg-white rounded-[2.5rem] p-8 shadow-xl border border-indigo-50 relative overflow-hidden flex flex-col">
+                                      <div className="flex items-center justify-between mb-8">
+                                         <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100"><Wrench size={24}/></div>
+                                         <button onClick={()=>setShowEaRef(true)} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"><Info size={14}/> Ea Guide</button>
+                                      </div>
+                                      <div className="mb-8">
+                                         <h4 className="text-xl font-black text-slate-800 tracking-tight uppercase">Arrhenius AF / 加速因子</h4>
+                                         <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest leading-tight">加速度因子計算 (溫度應力)</p>
+                                      </div>
+                                      
+                                      <div className="space-y-6 flex-1">
+                                         <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                               <span className="text-[15px] font-black text-slate-400 tracking-widest ml-1">Use Temp (℃) / 使用溫度</span>
+                                               <input type="number" value={afTuse} onChange={e=>setAfTuse(Number(e.target.value))} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-black text-slate-800 text-lg outline-none focus:border-indigo-400 transition-all"/>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                               <span className="text-[15px] font-black text-slate-400 tracking-widest ml-1">Test Temp (℃) / 測試溫度</span>
+                                               <input type="number" value={afTtest} onChange={e=>setAfTtest(Number(e.target.value))} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-black text-slate-800 text-lg outline-none focus:border-indigo-400 transition-all"/>
+                                            </div>
                                          </div>
-                                         <div className="space-y-2">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Test Temp / 測試溫度 (℃)</span>
-                                            <div className="p-5 bg-slate-50 rounded-[1.5rem] border focus-within:border-indigo-400 transition-all"><input type="number" value={afTtest} onChange={e=>setAfTtest(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-2xl outline-none"/></div>
-                                         </div>
-                                         <div className="space-y-2 relative">
+                                         <div className="space-y-1.5">
                                             <div className="flex justify-between items-center px-1">
-                                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ea (eV) / 活化能</span>
-                                               <button onClick={()=>setShowEaRef(true)} className="flex items-center gap-1 text-[9px] font-black text-indigo-600 hover:text-indigo-800 transition-all uppercase tracking-widest"><Info size={12}/> Reference Table</button>
+                                               <span className="text-[15px] font-black text-slate-400 tracking-widest">Activation Energy (eV) / 活化能</span>
                                             </div>
-                                            <div className="p-5 bg-slate-50 rounded-[1.5rem] border focus-within:border-indigo-400 transition-all"><input type="number" step="0.1" value={afEa} onChange={e=>setAfEa(e.target.value)} className="w-full bg-transparent font-black text-slate-900 text-2xl outline-none"/></div>
+                                            <div className="flex gap-2">
+                                               <select value={afEa} onChange={e=>setAfEa(Number(e.target.value))} className="flex-1 p-3 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl font-black text-[11px] outline-none">
+                                                  <option value="0.4">0.4 eV (Solder Fatigue)</option>
+                                                  <option value="0.6">0.6 eV (Standard)</option>
+                                                  <option value="0.7">0.7 eV (High REL)</option>
+                                                  <option value="0.9">0.9 eV (Metal Migration)</option>
+                                               </select>
+                                               <input type="number" step="0.05" value={afEa} onChange={e=>setAfEa(Number(e.target.value))} className="w-20 p-3 bg-slate-50 border border-slate-100 rounded-xl font-black text-slate-800 text-center text-sm outline-none"/>
+                                            </div>
                                          </div>
                                       </div>
-                                      <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-white flex flex-col items-center justify-center text-center shadow-2xl shadow-indigo-200">
-                                         <span className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-4">Calculated Result</span>
-                                         <div className="text-7xl font-black mb-2">{calcAF.toFixed(2)}<span className="text-xl ml-2 font-bold opacity-60">X</span></div>
-                                         <p className="text-[10px] font-bold text-indigo-100 opacity-60 uppercase tracking-widest leading-relaxed">Acceleration Factor<br/>對比常溫條件之加速倍率</p>
-                                      </div>
-                                   </div>
-                                 </div>
-                              </div>
-                           </div>
-                         )}
 
-                         {activeTool === 'st' && (
-                           <div className="max-w-4xl mx-auto">
-                              <div className="bg-[#0f172a] rounded-[3rem] p-12 shadow-2xl border border-slate-700 relative overflow-hidden group">
-                                 <div className="relative z-10">
-                                   <div className="flex items-center justify-between mb-12">
-                                      <div className="p-4 bg-indigo-500 rounded-2xl shadow-lg shadow-indigo-900/50 text-white"><Calculator size={32}/></div>
-                                      <div className="flex items-center gap-2">
-                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Acceleration Support:</span>
-                                         <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full font-black text-[10px] uppercase">AF = {calcAF.toFixed(1)}x</span>
+                                      <div className="mt-8 pt-8 border-t border-slate-50 flex items-center justify-between">
+                                         <div>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Calc. result / 計算結果</span>
+                                            <div className="text-3xl font-black text-indigo-600 mt-1">{reliabilityResults.af.toFixed(2)}<span className="text-xs ml-1 opacity-50">X</span></div>
+                                         </div>
+                                         <div className="p-3 bg-indigo-50 rounded-xl text-indigo-400"><Activity size={20}/></div>
                                       </div>
                                    </div>
-                                   <h4 className="text-3xl font-black text-white mb-2 tracking-tighter uppercase">Success Test Planner / 試驗計畫</h4>
-                                   <p className="text-xs text-indigo-400 font-bold uppercase tracking-[0.2em] mb-12">基於目標 MTBF 之零失效測試計畫</p>
-                                   
-                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                                      <div className="space-y-8">
+
+                                   {/* Part 2: MTBF Planner / Assessor */}
+                                   <div className="xl:col-span-8 bg-[#0f172a] rounded-[2.5rem] p-10 shadow-2xl border border-slate-800 relative overflow-hidden">
+                                      <div className="flex items-center justify-between mb-8">
+                                         <div className="p-4 bg-indigo-500 rounded-2xl shadow-lg shadow-indigo-900/50 text-white"><Calculator size={28}/></div>
+                                         <div className="flex bg-slate-800/80 backdrop-blur p-1 rounded-xl border border-slate-700 shadow-inner">
+                                            <button onClick={()=>setStMode('planning')} className={`px-5 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${stMode === 'planning' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Planning / 測試規劃</button>
+                                            <button onClick={()=>setStMode('assessment')} className={`px-5 py-2 text-[9px] font-black uppercase rounded-lg transition-all ${stMode === 'assessment' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>Assessment / 結果評估</button>
+                                         </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                         <div className="space-y-6">
+                                            <div className="mb-2">
+                                              <h4 className="text-2xl font-black text-white tracking-widest uppercase">{stMode === 'planning' ? 'Planning / 測試規劃' : 'Assessment / 結果評估'}</h4>
+                                              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-[0.2em]">{stMode === 'planning' ? 'Required Test Duration' : 'Demonstrated Reliability'}</p>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                               {stMode === 'planning' ? (
+                                                  <React.Fragment>
+                                                     <div className="space-y-1.5">
+                                                        <span className="text-[15px] font-black text-slate-500 tracking-widest ml-1">Warranty (Y) / 保固年限</span>
+                                                        <input type="number" value={stWarrantyYears} onChange={e=>setStWarrantyYears(Number(e.target.value))} className="w-full bg-slate-800/50 border border-slate-700 p-3 rounded-xl font-black text-white text-lg outline-none focus:border-indigo-500 transition-all"/>
+                                                     </div>
+                                                     <div className="space-y-1.5">
+                                                        <span className="text-[15px] font-black text-slate-500 tracking-widest ml-1">Use (H/D) / 每日時數</span>
+                                                        <input type="number" value={stUsagePerDay} onChange={e=>setStUsagePerDay(Number(e.target.value))} className="w-full bg-slate-800/50 border border-slate-700 p-3 rounded-xl font-black text-white text-lg outline-none focus:border-indigo-500 transition-all"/>
+                                                     </div>
+                                                     <div className="space-y-1.5">
+                                                        <span className="text-[15px] font-black text-slate-500 tracking-widest ml-1">Samples (N) / 樣本數</span>
+                                                        <input type="number" value={stSamples} onChange={e=>setStSamples(Number(e.target.value))} className="w-full bg-slate-800/50 border border-slate-700 p-3 rounded-xl font-black text-white text-lg outline-none focus:border-indigo-500 transition-all"/>
+                                                     </div>
+                                                  </React.Fragment>
+                                               ) : (
+                                                  <div className="col-span-2 space-y-1.5">
+                                                     <div className="flex justify-between items-center px-1">
+                                                        <span className="text-[15px] font-black text-slate-500 tracking-widest">Individual Durations / 個別測試時長 (Hrs)</span>
+                                                        <span className="text-[8px] text-indigo-400/50 font-bold uppercase italic">Separated by comma or space</span>
+                                                     </div>
+                                                     <textarea value={stIndividualTimes} onChange={e=>setStIndividualTimes(e.target.value)} placeholder="e.g. 1000, 1000, 850..." className="w-full bg-slate-800/50 border border-slate-700 p-3 rounded-xl font-black text-indigo-400 text-sm h-24 outline-none focus:border-indigo-500 transition-all custom-scrollbar resize-none"/>
+                                                  </div>
+                                               )}
+                                               <div className="space-y-1.5">
+                                                  <span className="text-[15px] font-black text-slate-500 tracking-widest ml-1">Confidence (%) / 信心水準</span>
+                                                  <input type="number" value={stCL} onChange={e=>setStCL(Number(e.target.value))} className="w-full bg-slate-800/50 border border-slate-700 p-3 rounded-xl font-black text-white text-lg outline-none focus:border-indigo-500 transition-all"/>
+                                               </div>
+                                               <div className={`${stMode === 'planning' ? '' : 'col-span-1'} space-y-1.5`}>
+                                                  <span className="text-[15px] font-black text-slate-500 tracking-widest ml-1">Failures (C) / 測試失效數</span>
+                                                  <input type="number" value={stFailures} onChange={e=>setStFailures(Number(e.target.value))} className="w-full bg-slate-800/50 border border-slate-700 p-3 rounded-xl font-black text-rose-400 text-lg outline-none focus:border-rose-500 transition-all"/>
+                                               </div>
+                                            </div>
+                                         </div>
+
+                                         <div className="flex flex-col justify-center gap-6">
+                                            {stMode === 'assessment' && (
+                                              <div className="p-6 bg-slate-800/40 rounded-3xl border border-slate-700/50 text-center group">
+                                                 <div className="flex justify-center gap-4 mb-2">
+                                                    <div className="text-center">
+                                                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Samples (N)</span>
+                                                       <span className="text-sm font-black text-white">{reliabilityResults.n}</span>
+                                                    </div>
+                                                    <div className="w-px h-6 bg-slate-700 self-center"></div>
+                                                    <div className="text-center">
+                                                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Failures (C)</span>
+                                                       <span className="text-sm font-black text-rose-400">{stFailures}</span>
+                                                    </div>
+                                                 </div>
+                                                 <span className="text-[15px] font-black text-slate-500 tracking-widest block mb-1">Total Accumulated Hours / 總累積測試時數</span>
+                                                 <div className="text-2xl font-black text-slate-300 group-hover:text-white transition-colors">{Math.round(reliabilityResults.totalHoursActual).toLocaleString()} <span className="text-xs opacity-40 italic">HRS (Total)</span></div>
+                                                 <div className="text-[10px] font-bold text-indigo-400 mt-1 uppercase tracking-widest">Eqv. {Math.round(reliabilityResults.totalHoursEquivalent).toLocaleString()} Hrs w/ AF</div>
+                                              </div>
+                                            )}
+                                            <div className="p-10 bg-indigo-600 rounded-[3rem] shadow-2xl shadow-indigo-900/40 text-white text-center relative overflow-hidden group">
+                                               <div className="absolute top-4 right-6 text-[9px] font-black text-indigo-300 opacity-50 uppercase tracking-widest">AF Applied: {reliabilityResults.af.toFixed(1)}x</div>
+                                               <span className="text-[9px] font-black text-indigo-200 uppercase tracking-[0.2em] block mb-4">{stMode === 'planning' ? 'Req. Test Time Per Sample / 單隻所需時數' : 'Demonstrated MTBF / 評估可用度結果'}</span>
+                                               <div className="text-4xl font-black mb-1 group-hover:scale-105 transition-transform duration-500">
+                                                  {stMode === 'planning' ? Math.round(reliabilityResults.reqTimePerSample).toLocaleString() : Math.round(reliabilityResults.demonstratedMTBF).toLocaleString()}
+                                                  <span className="text-lg ml-2 font-bold opacity-60">HRS</span>
+                                               </div>
+                                               <div className="text-[8px] font-black text-indigo-100/50 uppercase tracking-widest mt-4">Stat: Chi-Square Inverse (df={2*stFailures+2})</div>
+                                            </div>
+                                         </div>
+                                      </div>
+                                   </div>
+                                </div>
+
+                                {/* Part 3: Purpose Summary Card */}
+                                <div className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-200 shadow-inner relative overflow-hidden group">
+                                   <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                                   <div className="flex items-start gap-6">
+                                      <div className="p-4 bg-white rounded-2xl shadow-sm text-indigo-600"><FileText size={28}/></div>
+                                      <div className="space-y-4">
+                                         <div>
+                                            <h5 className="text-[15px] font-black text-slate-400 uppercase tracking-widest mb-1">Calculation Summary & Purpose / 計算摘要與目的</h5>
+                                            <div className="h-px w-20 bg-indigo-200"></div>
+                                         </div>
                                          <div className="space-y-3">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Target MTBF / 目標壽命 (Hrs)</span>
-                                            <input type="number" value={stMTBF} onChange={e=>setStMTBF(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 p-5 rounded-2xl font-black text-indigo-400 text-3xl outline-none focus:border-indigo-500 transition-all"/>
-                                         </div>
-                                         <div className="grid grid-cols-2 gap-6">
-                                            <div className="space-y-3">
-                                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Conf Level (%) / 信賴度</span>
-                                               <input type="number" value={stCL} onChange={e=>setStCL(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 p-5 rounded-2xl font-black text-white text-2xl outline-none focus:border-indigo-500 transition-all"/>
-                                            </div>
-                                            <div className="space-y-3">
-                                               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Sample (n) / 樣本數</span>
-                                               <input type="number" value={stSamples} onChange={e=>setStSamples(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 p-5 rounded-2xl font-black text-white text-2xl outline-none focus:border-indigo-500 transition-all"/>
-                                            </div>
-                                         </div>
-                                      </div>
-                                      <div className="flex flex-col justify-center gap-6">
-                                         <div className="p-10 bg-white/5 border border-white/10 rounded-[2.5rem] flex flex-col items-center justify-center text-center backdrop-blur-xl relative">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Required Test Time / 所需測試時間</span>
-                                            <div className="text-6xl font-black text-indigo-400 mb-2">{Math.round(calcTestTime).toLocaleString()}<span className="text-xl ml-2 font-bold opacity-60">H</span></div>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Assume zero failure during test</p>
-                                         </div>
-                                         <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-4 items-center">
-                                            <AlertCircle className="text-amber-500" size={24}/>
-                                            <p className="text-[10px] text-amber-500 font-bold uppercase leading-relaxed tracking-wider">Formula: t = (MTBF * -ln(1-CL)) / (n * AF)</p>
+                                            <p className="text-lg font-bold text-slate-700 leading-relaxed italic pr-12">"{mtbfPurpose.en}"</p>
+                                            <p className="text-lg font-black text-indigo-600 leading-relaxed border-l-4 border-indigo-100 pl-4">{mtbfPurpose.zh}</p>
                                          </div>
                                       </div>
                                    </div>
-                                 </div>
-                              </div>
-                           </div>
-                         )}
+                                </div>
+                             </div>
+                          )}
 
                          {activeTool === 'conv' && (
                            <div className="max-w-3xl mx-auto">
