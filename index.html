@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HQA Portal v1.4.5 | REL Laboratory</title>
+    <title>HQA Portal v1.4.6 | REL Laboratory</title>
     <link rel="icon" href="https://lucide.dev/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -128,7 +128,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.4.5';
+      const APP_VERSION = 'v1.4.6';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -1380,11 +1380,10 @@
                                <div className="xl:col-span-4 bg-slate-900 rounded-[3rem] p-8 shadow-2xl relative border border-slate-800 overflow-hidden">
                                   <div className="flex justify-between items-center mb-6">
                                     <div>
-                                      <h4 className="text-xl font-black text-white uppercase tracking-tighter">Profile Visualization</h4>
-                                      <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest italic">Chamber Logic Path</p>
+                                      <h4 className="text-xl font-black text-white uppercase tracking-tighter">Profile Visualization / 測試曲線模擬</h4>
+                                      <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest italic">Chamber Logic Path / 溫濕度箱程式邏輯</p>
                                     </div>
                                     <div className="flex gap-4">
-                                       <button onClick={()=>setProfileSteps([...profileSteps, { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }])} className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-indigo-600 transition-all shadow-lg">+ New Step</button>
                                        <div className="flex items-center gap-3 text-white/50 text-[10px] font-black uppercase">
                                           <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-indigo-500"></div> Temp</span>
                                           {showHumidity && <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full border border-emerald-400 border-dashed"></div> Humid</span>}
@@ -1506,7 +1505,7 @@
                                {/* Total Duration (1/5) */}
                                <div className="xl:col-span-1 bg-white rounded-[3rem] p-8 shadow-2xl border border-slate-100 flex flex-col justify-center items-center text-center">
                                   <div className="mb-4 p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Clock size={32} /></div>
-                                  <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Estimated Duration</h5>
+                                  <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Estimated Duration / 預估總時長</h5>
                                   {(() => {
                                      let unrolled = [...profileSteps];
                                      cycles.forEach(c => {
@@ -1540,7 +1539,7 @@
                                  <div className="flex justify-between items-center mb-8">
                                    <div className="flex items-center gap-3">
                                       <div className="p-3 bg-slate-100 rounded-xl text-slate-500"><LayoutList size={20} /></div>
-                                      <h5 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Step Definitions</h5>
+                                      <h5 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Step Definitions / 步驟定義</h5>
                                    </div>
                                    <div className="flex gap-2">
                                       <button onClick={exportProfileToExcel} className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><Download size={20}/></button>
@@ -1550,46 +1549,81 @@
 
                                  <div className="max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
                                    <table className="w-full text-left border-separate border-spacing-y-2">
-                                      <thead><tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4"><th className="py-2 px-3 text-center w-12">No.</th><th className="py-2 px-4">Type</th><th className="py-2 px-4">Control</th><th className="py-2 px-4">Value</th><th className="py-2 px-4">Temp(C)</th><th className="py-2 px-3 text-center w-12">X</th></tr></thead>
+                                      <thead>
+                                         <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-4">
+                                            <th className="py-2 px-3 text-center w-12">No.</th>
+                                            <th className="py-2 px-4">Type / 類型</th>
+                                            <th className="py-2 px-4">Control / 模式</th>
+                                            <th className="py-2 px-4">Value / 參數</th>
+                                            <th className="py-2 px-4">Temp(℃) / 溫度</th>
+                                            {showHumidity && <th className="py-2 px-4">Humid(%) / 濕度</th>}
+                                            <th className="py-2 px-3 text-center w-12">Action</th>
+                                         </tr>
+                                      </thead>
                                       <tbody>
                                          {profileSteps.map((s, idx) => (
-                                            <tr key={s.id} className="group hover:bg-slate-50 transition-all">
-                                               <td className="py-4 px-3 text-center font-black text-indigo-400 text-xs rounded-l-2xl border-y border-l border-slate-100">{idx+1}</td>
-                                               <td className="py-4 px-4 border-y border-slate-100"><select value={s.type} onChange={e=>{const n = [...profileSteps]; n[idx].type=e.target.value; setProfileSteps(n);}} className="w-full bg-white border rounded-lg p-2 text-xs font-bold outline-none"><option value="Ramp">Ramp</option><option value="Soak">Soak</option></select></td>
-                                               <td className="py-4 px-4 border-y border-slate-100">{s.type === 'Ramp' ? (<button onClick={()=>{const n=[...profileSteps]; n[idx].mode = n[idx].mode === 'slope' ? 'time':'slope'; setProfileSteps(n);}} className={`w-full py-2 rounded-lg text-[9px] font-black uppercase transition-all ${s.mode === 'slope' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{s.mode === 'slope' ? 'Slope' : 'Time'}</button>) : '-'}</td>
-                                               <td className="py-4 px-4 border-y border-slate-100"><input type="text" value={s.mode==='slope'&&s.type==='Ramp'?s.slope:s.time} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; if(s.mode==='slope'&&s.type==='Ramp') n[idx].slope=v; else n[idx].time=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 text-xs font-bold outline-none" /></td>
-                                               <td className="py-4 px-4 border-y border-slate-100"><input type="text" value={s.temp} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; n[idx].temp=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 text-xs font-bold outline-none" /></td>
-                                               <td className="py-4 px-3 text-center bg-white rounded-r-2xl border-y border-r border-slate-100"><button onClick={()=>{const n=[...profileSteps]; n.splice(idx,1); setProfileSteps(n);}} className="p-2 text-slate-300 hover:text-rose-500 transition-all"><Trash2 size={16}/></button></td>
+                                            <tr key={s.id} className="group hover:bg-slate-50 transition-all text-[11px]">
+                                               <td className="py-4 px-3 text-center font-black text-indigo-400 rounded-l-2xl border-y border-l border-slate-100">{idx+1}</td>
+                                               <td className="py-4 px-4 border-y border-slate-100">
+                                                  <select value={s.type} onChange={e=>{const n = [...profileSteps]; n[idx].type=e.target.value; setProfileSteps(n);}} className="w-full bg-white border rounded-lg p-2 font-bold outline-none">
+                                                     <option value="Ramp">Ramp</option>
+                                                     <option value="Soak">Soak</option>
+                                                  </select>
+                                               </td>
+                                               <td className="py-4 px-4 border-y border-slate-100">
+                                                  {s.type === 'Ramp' ? (
+                                                     <button onClick={()=>{const n=[...profileSteps]; n[idx].mode = n[idx].mode === 'slope' ? 'time':'slope'; setProfileSteps(n);}} className={`w-full py-2 rounded-lg text-[9px] font-black uppercase transition-all ${s.mode === 'slope' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                        {s.mode === 'slope' ? 'Slope' : 'Time'}
+                                                     </button>
+                                                  ) : '-'}
+                                               </td>
+                                               <td className="py-4 px-4 border-y border-slate-100">
+                                                  <input type="text" value={s.mode==='slope'&&s.type==='Ramp'?s.slope:s.time} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; if(s.mode==='slope'&&s.type==='Ramp') n[idx].slope=v; else n[idx].time=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 font-bold outline-none" placeholder={s.mode==='slope'?'℃/m':'min'} />
+                                               </td>
+                                               <td className="py-4 px-4 border-y border-slate-100">
+                                                  <input type="text" value={s.temp} onChange={e=>{const v=e.target.value.replace(/[^\d.-]/g,''); const n=[...profileSteps]; n[idx].temp=v; setProfileSteps(n);}} className="w-full border rounded-lg p-2 font-bold outline-none" placeholder="℃" />
+                                               </td>
+                                               {showHumidity && (
+                                                  <td className="py-4 px-4 border-y border-slate-100 animate-in fade-in transition-all">
+                                                     <input type="text" value={s.humidity} onChange={e=>{const v=e.target.value.replace(/[^\d.]/g,''); const n=[...profileSteps]; n[idx].humidity=v; setProfileSteps(n);}} className="w-full border border-emerald-200 rounded-lg p-2 font-bold outline-none text-emerald-600" placeholder="%RH" />
+                                                  </td>
+                                               )}
+                                               <td className={`py-4 px-3 text-center bg-white border-y border-r border-slate-100 ${showHumidity?'':'rounded-r-2xl'}`}>
+                                                  <button onClick={()=>{const n=[...profileSteps]; n.splice(idx,1); setProfileSteps(n);}} className="p-2 text-slate-300 hover:text-rose-500 transition-all"><Trash2 size={16}/></button>
+                                               </td>
                                             </tr>
                                          ))}
                                       </tbody>
                                    </table>
+                                   <button onClick={()=>setProfileSteps([...profileSteps, { id: generateId(), type: 'Ramp', time: '30', temp: '25', humidity: '50', mode: 'time', slope: '2' }])} className="w-full mt-4 py-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:border-indigo-500 hover:text-indigo-600 hover:bg-white transition-all shadow-sm">
+                                      + 新增步驟 Add Step
+                                   </button>
                                  </div>
                                </div>
 
                                {/* Cycle / Options (4/12) */}
                                <div className="xl:col-span-4 flex flex-col gap-8">
                                   <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border border-slate-800 text-white">
-                                     <div className="flex items-center gap-3 mb-8"><div className="p-2 bg-indigo-600/20 rounded-xl text-indigo-400"><RefreshCw size={20}/></div><h5 className="text-sm font-black uppercase tracking-widest">Cycle Manager</h5></div>
+                                     <div className="flex items-center gap-3 mb-8"><div className="p-2 bg-indigo-600/20 rounded-xl text-indigo-400"><RefreshCw size={20}/></div><h5 className="text-sm font-black uppercase tracking-widest">Cycle Manager / 循環管理</h5></div>
                                      <div className="space-y-4">
                                         {cycles.map((c, i) => (
                                            <div key={`cycle-${i}`} className="bg-slate-800/30 p-4 rounded-2xl border border-slate-700/50">
-                                              <div className="text-[9px] font-black text-slate-500 mb-3 uppercase tracking-widest flex justify-between">Group {i+1} <button onClick={()=>{const n=[...cycles]; n.splice(i,1); setCycles(n);}} className="text-rose-400">DEL</button></div>
+                                              <div className="text-[9px] font-black text-slate-500 mb-3 uppercase tracking-widest flex justify-between">Group {i+1} <button onClick={()=>{const n=[...cycles]; n.splice(i,1); setCycles(n);}} className="text-rose-400 underline italic">Delete / 刪除</button></div>
                                               <div className="grid grid-cols-3 gap-2 text-[10px]">
-                                                 <div className="space-y-1"><span>From</span><input value={c.start} onChange={e=>{const n=[...cycles]; n[i].start=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
-                                                 <div className="space-y-1"><span>To</span><input value={c.end} onChange={e=>{const n=[...cycles]; n[i].end=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
-                                                 <div className="space-y-1"><span>Loops</span><input value={c.count} onChange={e=>{const n=[...cycles]; n[i].count=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
+                                                 <div className="space-y-1"><span>From / 起點</span><input value={c.start} onChange={e=>{const n=[...cycles]; n[i].start=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
+                                                 <div className="space-y-1"><span>To / 迄點</span><input value={c.end} onChange={e=>{const n=[...cycles]; n[i].end=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
+                                                 <div className="space-y-1"><span>Loops / 次數</span><input value={c.count} onChange={e=>{const n=[...cycles]; n[i].count=e.target.value; setCycles(n);}} className="w-full bg-slate-900 border border-slate-700 p-2 rounded-lg text-white" /></div>
                                               </div>
                                            </div>
                                         ))}
-                                        <button onClick={()=>setCycles([...cycles, { start: '', end: '', count: 10 }])} className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-[9px] font-black uppercase text-slate-500 hover:border-indigo-500 transition-all">+ Add Loop</button>
+                                        <button onClick={()=>setCycles([...cycles, { start: '', end: '', count: 10 }])} className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-[9px] font-black uppercase text-slate-500 hover:border-indigo-500 transition-all">+ Add Loop / 新增循環</button>
                                      </div>
                                   </div>
 
                                   <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 flex flex-col gap-4">
-                                     <h5 className="text-[10px] font-black text-slate-300 uppercase tracking-widest border-b pb-4">Display Options</h5>
-                                     <label className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Start @ 25C</span><input type="checkbox" checked={startAt25} onChange={e=>setStartAt25(e.target.checked)} className="w-5 h-5 accent-indigo-600"/></label>
-                                     <label className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Show Humidity</span><input type="checkbox" checked={showHumidity} onChange={e=>setShowHumidity(e.target.checked)} className="w-5 h-5 accent-emerald-500"/></label>
+                                     <h5 className="text-[10px] font-black text-slate-300 uppercase tracking-widest border-b pb-4">Display Options / 顯示選項</h5>
+                                     <label className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Start @ 25°C / 從 25°C 開始</span><input type="checkbox" checked={startAt25} onChange={e=>setStartAt25(e.target.checked)} className="w-5 h-5 accent-indigo-600"/></label>
+                                     <label className="flex items-center justify-between cursor-pointer"><span className="text-[11px] font-black text-slate-700 uppercase tracking-widest">Show Humidity / 顯示濕度線</span><input type="checkbox" checked={showHumidity} onChange={e=>setShowHumidity(e.target.checked)} className="w-5 h-5 accent-emerald-500"/></label>
                                   </div>
                                </div>
                              </div>
