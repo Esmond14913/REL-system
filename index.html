@@ -145,7 +145,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.5.2';
+      const APP_VERSION = 'v1.5.3';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -413,13 +413,27 @@
       const loadAndCleanupExcelData = async (handle, rDays) => {
         try {
           if (!handle) return;
-          setMessage('Scanning folder...');
+          setMessage('Searching for latest file...');
           let latestFileHandle = null;
-          let latestDateStr = '';
-          for await (const entry of handle.values()) {
-             if (entry.kind === 'file' && entry.name.startsWith('HQA_Master_') && entry.name.endsWith('.xlsx')) {
-                const dateStr = entry.name.replace('HQA_Master_', '').replace('.xlsx', '');
-                if (dateStr > latestDateStr) { latestDateStr = dateStr; latestFileHandle = entry; }
+          for (let i = 0; i < 7; i++) {
+             const checkDate = dayjs().subtract(i, 'day').format('YYYYMMDD');
+             const fileName = `HQA_Master_${checkDate}.xlsx`;
+             try {
+                latestFileHandle = await handle.getFileHandle(fileName);
+                if (latestFileHandle) break;
+             } catch (e) { }
+          }
+          if (!latestFileHandle) {
+             setMessage('No recent file found in last 7 days.');
+             try {
+                const [fileHandle] = await window.showOpenFilePicker({
+                   types: [{ description: 'Excel Files', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }],
+                   multiple: false
+                });
+                latestFileHandle = fileHandle;
+             } catch (e) {
+                setMessage('Manual selection cancelled or not available.');
+                return;
              }
           }
           if (!latestFileHandle) {
@@ -442,7 +456,7 @@
           setReadinessItems(getSheetData('Readiness'));
           setDocuments(getSheetData('Documents'));
           setMessage('Ready.');
-          autoCleanup(handle, rDays);
+          // autoCleanup(handle, rDays);
         } catch(err) { console.error('Load Excel failed:', err); setMessage('Error loading Excel.'); }
       };
 
