@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
@@ -145,7 +145,7 @@
     };
 
     function App() {
-      const APP_VERSION = 'v1.5.3';
+      const APP_VERSION = 'v1.5.4';
       const [activeTab, setActiveTab] = useState('records'); 
       const [dirHandle, setDirHandle] = useState(null);
       const [retentionDays, setRetentionDays] = useState(parseInt(localStorage.getItem('retention_days') || '30', 10));
@@ -172,6 +172,7 @@
       const [filterResult, setFilterResult] = useState('All');
       const [filterKeeper, setFilterKeeper] = useState('All');
       const [filterStatus, setFilterStatus] = useState('All');
+      const [sortConfigSamples, setSortConfigSamples] = useState({ key: null, direction: 'asc' });
 
       const [editingRecord, setEditingRecord] = useState(null);
       const [editingSample, setEditingSample] = useState(null);
@@ -550,6 +551,12 @@
          }
          return true;
       });
+      const handleSortSamples = (key) => {
+         let direction = 'asc';
+         if (sortConfigSamples.key === key && sortConfigSamples.direction === 'asc') direction = 'desc';
+         setSortConfigSamples({ key, direction });
+      };
+
       const filteredSamples = samples.filter(r => {
          if (filterProject !== 'All' && r.Project !== filterProject) return false;
          if (filterStage !== 'All' && r.Stage !== filterStage) return false;
@@ -565,6 +572,13 @@
                   (r.Remark || '').toLowerCase().includes(s);
          }
          return true;
+      }).sort((a, b) => {
+         if (!sortConfigSamples.key) return 0;
+         const valA = (a[sortConfigSamples.key] || "").toString();
+         const valB = (b[sortConfigSamples.key] || "").toString();
+         // 使用自然排序（處理 DUT ID: 1, 2, 10 的問題）
+         const comparison = valA.localeCompare(valB, undefined, { numeric: true, sensitivity: "base" });
+         return sortConfigSamples.direction === "asc" ? comparison : -comparison;
       });
       const filteredConfigs = configsList.filter(r => {
          if (filterProject !== 'All' && r.Project !== filterProject) return false;
@@ -876,18 +890,18 @@
                         <table className="w-full text-left border-separate border-spacing-0">
                           <thead className="bg-slate-50 border-b">
                              <tr className="text-[10px] uppercase text-slate-400 font-bold">
-                                <th className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 text-left">Project / 專案</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Stage / 階段</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Build / 版本</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Config / 配置</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">DUT ID / 樣機編號</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">SN / 序號</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Keeper / 保管人</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 1 / 項目 1</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Item 2 / 項目 2</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">Failure / 不良現象</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200">FA Report / FA 報告</th>
-                                <th className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5 text-left">Remark / 備註</th>
+                                <th onClick={() => handleSortSamples("Project")} className="p-3 sticky top-0 left-0 bg-slate-100 z-30 border-b border-r border-slate-200 text-left cursor-pointer hover:text-indigo-500 select-none">Project / 專案</th>
+                                <th onClick={() => handleSortSamples("Stage")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">Stage / 階段</th>
+                                <th onClick={() => handleSortSamples("Build")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">Build / 版本</th>
+                                <th onClick={() => handleSortSamples("Config")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">Config / 配置</th>
+                                <th onClick={() => handleSortSamples("DUT ID")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">DUT ID / 樣機編號</th>
+                                <th onClick={() => handleSortSamples("SN")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">SN / 序號</th>
+                                <th onClick={() => handleSortSamples("Keeper")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">Keeper / 保管人</th>
+                                <th onClick={() => handleSortSamples("item1")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">Item 1 / 項目 1</th>
+                                <th onClick={() => handleSortSamples("item2")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">Item 2 / 項目 2</th>
+                                <th onClick={() => handleSortSamples("Failure")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">Failure / 不良現象</th>
+                                <th onClick={() => handleSortSamples("FA report")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 cursor-pointer hover:text-indigo-500 select-none">FA Report / FA 報告</th>
+                                <th onClick={() => handleSortSamples("Remark")} className="p-3 sticky top-0 bg-slate-50 z-20 border-b border-slate-200 w-1/5 text-left cursor-pointer hover:text-indigo-500 select-none">Remark / 備註</th>
                                 {isAdmin && <th className="p-3 sticky top-0 right-0 bg-slate-100 z-30 border-b border-l border-slate-200 text-center">Action / 操作</th>}
                              </tr>
                           </thead>
